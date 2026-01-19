@@ -2,15 +2,20 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>TableKey - Enterprise Club Management</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">
+    <title>TableKey</title> <meta name="theme-color" content="#020617">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" href="https://ui-avatars.com/api/?name=TK&background=020617&color=eab308&size=512&font-size=0.4&rounded=false&bold=true">
+    <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=TK&background=020617&color=eab308&size=512&font-size=0.4&rounded=false&bold=true">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #020617; }
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #020617; overscroll-behavior-y: none; }
         
         /* UI Basics */
         .tavolo { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; user-select: none; }
@@ -703,14 +708,6 @@
             if (myTablesCount === 0) container.innerHTML = '<p class="text-[10px] text-slate-600 text-center py-20 italic font-black uppercase">Nessun tavolo.</p>';
             document.getElementById('pr-wallet-total').innerText = "€ " + wallet.toFixed(2);
         }
-        function apriConfig(idx) { selectedTavolo = prenotazioni[idx]; document.getElementById('modal-config').classList.remove('hidden'); document.getElementById('conf-nome').innerText = "Tavolo " + selectedTavolo.tavolo_id; selectedTavolo.budget_calc = selectedTavolo.prezzo; document.getElementById('conf-budget').innerText = "€ " + selectedTavolo.budget_calc; const list = document.getElementById('conf-lista-bottiglie'); list.innerHTML = ""; bevande.forEach(b => { list.innerHTML += `<div class="bg-slate-900/50 p-5 rounded-3xl flex justify-between items-center border border-slate-800"><div><p class="font-black text-sm uppercase text-white italic">${b[0]}</p><p class="text-xs text-yellow-500 font-bold">€ ${b[1]}</p></div><button onclick="ordina('${b[0]}', ${b[1]})" class="bg-white text-black px-5 py-2 rounded-xl font-black text-[9px] uppercase italic active:scale-95 transition-transform">Aggiungi</button></div>`; }); }
-        function ordina(n, p) { if(selectedTavolo.budget_calc >= p) { selectedTavolo.budget_calc -= p; if(!selectedTavolo.bottiglie) selectedTavolo.bottiglie = []; selectedTavolo.bottiglie.push(n); document.getElementById('conf-budget').innerText = "€ " + selectedTavolo.budget_calc; } else { showToast("Budget esaurito!", "⚠️"); } }
-        async function inviaOrdineFinale() { if(!selectedTavolo.orario) return showToast("Seleziona orario!", "⏰"); selectedTavolo.note = document.getElementById('note-ordine').value; const { error } = await client.from('prenotazioni').update({ status: "Inviato", orario: selectedTavolo.orario, note: selectedTavolo.note, bottiglie: selectedTavolo.bottiglie }).eq('id', selectedTavolo.id); if(!error) { showToast("Ordine Inviato!", "🚀"); document.getElementById('modal-config').classList.add('hidden'); fetchPrenotazioni(); } }
-        function apriDettagliDirezione(idx) { const p = prenotazioni[idx]; document.getElementById('modal-direzione-dettagli').classList.remove('hidden'); document.getElementById('dir-titolo').innerText = "Tavolo " + p.tavolo_id; document.getElementById('dir-orario').innerText = p.orario || "--:--"; document.getElementById('dir-ingressi').innerText = `${p.ingressi_usati||0} / ${p.ingressi_totali}`; document.getElementById('dir-note').innerText = p.note || "Nessuna."; const list = document.getElementById('dir-bottiglie'); list.innerHTML = (p.bottiglie && p.bottiglie.length > 0) ? p.bottiglie.map(b => `<p>• ${b}</p>`).join('') : "<p class='text-slate-600'>Nessun ordine.</p>"; }
-        function setOrario(t, b) { selectedTavolo.orario = t; document.querySelectorAll('.orario-btn').forEach(btn => { btn.classList.replace('bg-yellow-500', 'bg-slate-800'); btn.classList.replace('text-black', 'text-slate-400'); }); b.classList.replace('bg-slate-800', 'bg-yellow-500'); b.classList.replace('text-slate-400', 'text-black'); }
-        function richiediAccredito() { window.open(`https://wa.me/393331234567?text=Saldo: ${document.getElementById('pr-wallet-total').innerText}`, '_blank'); }
-        function copiaLink() { navigator.clipboard.writeText("nighthub.it/ref/" + window.currentUser); showToast("Link Copiato!", "🔗"); }
-        function aggiornaClassifica() { let stats = {}; const COMM = 0.10; prenotazioni.forEach(p => { let name = (p.pr_ref || "").trim().toUpperCase(); if(name) { if(!stats[name]) stats[name] = 0; stats[name] += (p.prezzo * COMM); } }); let sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]); const div = document.getElementById('classifica-live'); div.innerHTML = ""; if(sorted.length === 0) { div.innerHTML = '<p class="text-[9px] text-slate-600 text-center py-4 italic">In attesa di dati...</p>'; return; } sorted.forEach((item, index) => { let rank = index + 1; let color = rank === 1 ? 'text-yellow-400' : 'text-white'; let icon = rank === 1 ? '👑 ' : `${rank}. `; div.innerHTML += `<div class="flex justify-between items-center p-4 bg-slate-950 rounded-2xl border border-yellow-500/20"><span class="text-xs font-black italic ${color}">${icon}${item[0]}</span><span class="text-xs font-black text-yellow-500 italic">€ ${item[1].toFixed(2)}</span></div>`; }); }
         function apriCreaPR() { document.getElementById('modal-crea-pr').classList.remove('hidden'); }
     </script>
 </body>
