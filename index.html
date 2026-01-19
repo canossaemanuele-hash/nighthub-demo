@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">
-    <title>TableKey</title> <meta name="theme-color" content="#020617">
+    <title>TableKey</title>
+    
+    <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" href="https://ui-avatars.com/api/?name=TK&background=020617&color=eab308&size=512&font-size=0.4&rounded=false&bold=true">
@@ -20,18 +22,20 @@
         /* UI Basics */
         .tavolo { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; user-select: none; }
         .tavolo:active { transform: scale(0.95); }
-        .tavolo-prenotato { background-color: #1e293b !important; border-color: #334155 !important; color: #475569 !important; cursor: not-allowed !important; opacity: 0.6; pointer-events: none; }
+        /* TAVOLO PRENOTATO: Più scuro e NON cliccabile */
+        .tavolo-prenotato { background-color: #1e293b !important; border-color: #334155 !important; color: #475569 !important; cursor: not-allowed !important; opacity: 0.5; pointer-events: none; }
+        
         .tab-active { background-color: #eab308 !important; color: #000 !important; font-weight: 900; box-shadow: 0 4px 15px rgba(234, 179, 8, 0.3); }
         .sezione-contenuto { display: none; }
         .sezione-contenuto.active { display: block; animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
         .glass { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
         
-        /* Scanner Video Fullscreen */
+        /* Scanner Video */
         #reader { width: 100%; height: 100%; background: black; }
         #reader video { object-fit: cover; width: 100% !important; height: 100% !important; }
 
-        /* Custom Range Slider */
+        /* Range Slider */
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%; background: #eab308; cursor: pointer; margin-top: -10px; box-shadow: 0 0 10px rgba(234,179,8,0.5); }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }
@@ -40,7 +44,7 @@
         .status-ok { background-color: #22c55e; color: black; }
         .status-ko { background-color: #ef4444; color: white; }
         
-        /* Toast Notification */
+        /* Toast */
         #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: 90%; max-width: 400px; }
         .toast { background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(234, 179, 8, 0.3); color: white; padding: 16px; rounded-2xl; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; animation: slideUp 0.3s ease-out; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(10px); }
         .img-viewer { width: 100%; height: 100%; overflow: auto; display: flex; align-items: flex-start; justify-content: center; background: #000; }
@@ -420,7 +424,7 @@
             prenotazioni.forEach(p => { const el = document.getElementById(`map-tavolo-${p.tavolo_id}`); if (el) el.classList.add('tavolo-prenotato'); });
         }
 
-        // --- GESTIONE TEAM PR (NUOVA SEZIONE) ---
+        // --- GESTIONE TEAM PR ---
         function apriGestionePR() {
             document.getElementById('modal-gestione-pr').classList.remove('hidden');
             caricaTeamPR();
@@ -429,57 +433,36 @@
         async function caricaTeamPR() {
             const list = document.getElementById('lista-team-pr');
             list.innerHTML = '<div class="spinner"></div>';
-            
             const { data, error } = await client.from('team_pr').select('*').order('creato_il', { ascending: false });
             list.innerHTML = "";
-
             if (data && data.length > 0) {
                 data.forEach(pr => {
-                    list.innerHTML += `
-                        <div class="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800">
-                            <div>
-                                <p class="text-white text-xs font-black uppercase">${pr.nome}</p>
-                                <p class="text-slate-500 text-[10px] font-mono">Codice: <span class="text-blue-400">${pr.codice}</span></p>
-                            </div>
-                            <button onclick="rimuoviPR(${pr.id})" class="text-red-500 p-2 hover:bg-red-500/10 rounded-full transition-colors">🗑️</button>
-                        </div>
-                    `;
+                    list.innerHTML += `<div class="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800"><div><p class="text-white text-xs font-black uppercase">${pr.nome}</p><p class="text-slate-500 text-[10px] font-mono">Codice: <span class="text-blue-400">${pr.codice}</span></p></div><button onclick="rimuoviPR(${pr.id})" class="text-red-500 p-2 hover:bg-red-500/10 rounded-full transition-colors">🗑️</button></div>`;
                 });
-            } else {
-                list.innerHTML = '<p class="text-slate-600 text-center text-xs italic">Nessun PR nel team.</p>';
-            }
+            } else { list.innerHTML = '<p class="text-slate-600 text-center text-xs italic">Nessun PR nel team.</p>'; }
         }
 
         async function aggiungiPR() {
             const nome = document.getElementById('new-pr-name').value.trim();
             const codice = document.getElementById('new-pr-code').value.trim();
-
             if (!nome || !codice) return showToast("Compila tutti i campi", "⚠️");
-
             const { error } = await client.from('team_pr').insert([{ nome, codice }]);
-            if (error) {
-                showToast("Errore: " + error.message, "⛔");
-            } else {
-                showToast("PR Aggiunto!", "✅");
-                document.getElementById('new-pr-name').value = "";
-                document.getElementById('new-pr-code').value = "";
-                caricaTeamPR();
-            }
+            if (error) { showToast("Errore: " + error.message, "⛔"); } else { showToast("PR Aggiunto!", "✅"); document.getElementById('new-pr-name').value = ""; document.getElementById('new-pr-code').value = ""; caricaTeamPR(); }
         }
 
         async function rimuoviPR(id) {
             if(!confirm("Vuoi licenziare questo PR?")) return;
             const { error } = await client.from('team_pr').delete().eq('id', id);
-            if (!error) {
-                showToast("PR Rimosso", "🗑️");
-                caricaTeamPR();
-            }
+            if (!error) { showToast("PR Rimosso", "🗑️"); caricaTeamPR(); }
         }
 
         // --- CORE: MOTORE PRENOTAZIONE ---
         function selectTavolo(id, typeKey, zona) {
+            // Check VISIVO (Classi CSS)
             if(document.getElementById(`map-tavolo-${id}`).classList.contains('tavolo-prenotato')) return showToast("Tavolo Occupato", "🔒");
-            
+            // Check BACKEND (Doppia sicurezza locale)
+            if(prenotazioni.some(p => p.tavolo_id == id)) return showToast("Tavolo Già Prenotato", "🚫");
+
             const realBasePrice = configLocale[typeKey]; 
             const realMinHead = configLocale.min_testa;
 
@@ -492,7 +475,6 @@
                 totale: realBasePrice
             };
             
-            // Reset UI
             document.getElementById('slider-persone').value = 5;
             document.getElementById('slider-budget').min = realMinHead;
             document.getElementById('slider-budget').value = realMinHead;
@@ -511,7 +493,6 @@
             
             document.getElementById('warn-persone').classList.toggle('hidden', persone <= 20);
 
-            // Algoritmo: Minimo Garantito
             const calcTotal = persone * budgetHead;
             const finalPrice = Math.max(selectedTavolo.min_table, calcTotal);
 
@@ -535,34 +516,62 @@
         function backToCalc() { document.getElementById('pay-step-checkout').classList.add('hidden'); document.getElementById('pay-step-calc').classList.remove('hidden'); }
 
         async function processaPagamentoReale() {
+            let prCode = document.getElementById('pr-input').value.trim();
+            let note = "";
+
+            // 1. VALIDAZIONE PR (Intelligente)
+            if (prCode.length > 0) {
+                const { data: prData } = await client.from('team_pr').select('codice').eq('codice', prCode).single();
+                if (!prData) {
+                    if(!confirm(`⚠️ ATTENZIONE: Il codice "${prCode}" non esiste.\n\nVuoi procedere senza codice PR?`)) {
+                        return; // Ferma tutto, l'utente vuole correggere
+                    }
+                    prCode = ""; // Resetta il codice errato
+                } else {
+                    note = "🎁 PR: " + prCode;
+                }
+            }
+
+            // Avvio UI Loading
             document.getElementById('pay-step-checkout').classList.add('hidden');
             document.getElementById('pay-step-loading').classList.remove('hidden');
-            
-            const prCode = document.getElementById('pr-input').value || "";
-            let note = prCode ? "🎁 PR: " + prCode : "";
 
-            const { error } = await client.from('prenotazioni').insert([{
-                tavolo_id: selectedTavolo.tavolo_id,
-                zona: selectedTavolo.zona,
-                prezzo: selectedTavolo.totale,
-                cliente: window.currentUser,
-                status: "Pagato",
-                pr_ref: prCode,
-                note: note,
-                bottiglie: [],
-                ingressi_totali: selectedTavolo.persone,
-                ingressi_usati: 0
-            }]);
-
-            setTimeout(async () => {
-                if(error) showToast("Errore DB: " + error.message, "⚠️");
-                else {
-                    await fetchPrenotazioni();
-                    document.getElementById('modal-pagamento').classList.add('hidden');
-                    const newP = prenotazioni.find(p => p.tavolo_id === selectedTavolo.tavolo_id);
-                    if(newP) { selectedTavolo = newP; mostraPassDigitale(); }
+            try {
+                // 2. CHECK ANTI-DOPPIA PRENOTAZIONE (Controllo al millisecondo)
+                const { data: checkTable } = await client.from('prenotazioni').select('id').eq('tavolo_id', selectedTavolo.tavolo_id).maybeSingle();
+                
+                if (checkTable) {
+                    throw new Error("Tavolo appena occupato da un altro cliente!");
                 }
-            }, 2000);
+
+                // 3. INSERIMENTO PRENOTAZIONE
+                const { error } = await client.from('prenotazioni').insert([{
+                    tavolo_id: selectedTavolo.tavolo_id,
+                    zona: selectedTavolo.zona,
+                    prezzo: selectedTavolo.totale,
+                    cliente: window.currentUser,
+                    status: "Pagato",
+                    pr_ref: prCode,
+                    note: note,
+                    bottiglie: [],
+                    ingressi_totali: selectedTavolo.persone,
+                    ingressi_usati: 0
+                }]);
+
+                if(error) throw error;
+
+                // Successo
+                await fetchPrenotazioni();
+                document.getElementById('modal-pagamento').classList.add('hidden');
+                const newP = prenotazioni.find(p => p.tavolo_id === selectedTavolo.tavolo_id);
+                if(newP) { selectedTavolo = newP; mostraPassDigitale(); }
+
+            } catch (err) {
+                // Gestione Errori (Sblocca la schermata)
+                alert("ERRORE: " + err.message);
+                document.getElementById('pay-step-loading').classList.add('hidden');
+                document.getElementById('pay-step-checkout').classList.remove('hidden');
+            }
         }
 
         function dividiConAmici() {
@@ -573,7 +582,6 @@
         
         function chiudiModalePagamento() {
             document.getElementById('modal-pagamento').classList.add('hidden');
-            // Reset per la prossima volta
             document.getElementById('pay-step-calc').classList.remove('hidden');
             document.getElementById('pay-step-checkout').classList.add('hidden');
             document.getElementById('pay-step-loading').classList.add('hidden');
@@ -585,7 +593,6 @@
             document.getElementById('pass-details').innerHTML = `<p class="text-white font-black text-xl uppercase">Tavolo ${selectedTavolo.tavolo_id}</p><p class="text-yellow-500 text-sm font-black italic mt-2">${selectedTavolo.cliente}</p>`;
             const rimasti = selectedTavolo.ingressi_totali - (selectedTavolo.ingressi_usati || 0);
             document.getElementById('pass-counter').innerHTML = `<div class="flex justify-between items-center"><div><p class="text-[9px] uppercase text-slate-400 font-bold">Ingressi Totali</p><p class="text-white font-black text-lg">${selectedTavolo.ingressi_usati || 0} / ${selectedTavolo.ingressi_totali}</p></div><div class="text-right"><p class="text-[9px] uppercase text-green-400 font-bold">Disponibili</p><p class="text-green-500 font-black text-2xl">${rimasti}</p></div></div>`;
-            // QR CODE TABLEKEY GENERATO A 400x400
             let qrData = `TABLEKEY-T${selectedTavolo.tavolo_id}-${selectedTavolo.cliente}`;
             document.getElementById('qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrData)}`;
         }
@@ -603,20 +610,14 @@
             }, 1000);
         }
 
+        // --- SCANNER ROBUSTO (NO HD FORZATO) ---
         function startScanner() {
             if(html5QrCode) return;
             document.getElementById('modal-scanner').classList.remove('hidden');
             html5QrCode = new Html5Qrcode("reader");
-
             const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-            
-            // Tenta di avviare la camera SENZA restrizioni (massima compatibilità)
             html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-                .catch(err => {
-                    // SE FALLISCE: Mostra l'errore esatto all'utente
-                    alert("ERRORE CAMERA: " + err);
-                    stopScanner();
-                });
+                .catch(err => { alert("ERRORE CAMERA: " + err); stopScanner(); });
         }
         function onScanSuccess(decodedText) { stopScanner(); document.getElementById('security-scan-input').value = decodedText; checkIn(); }
         function stopScanner() { if(html5QrCode) { html5QrCode.stop().then(() => { html5QrCode.clear(); html5QrCode = null; document.getElementById('modal-scanner').classList.add('hidden'); }).catch(err => console.log(err)); } else { document.getElementById('modal-scanner').classList.add('hidden'); } }
@@ -626,7 +627,6 @@
             const resDiv = document.getElementById('security-result');
             resDiv.classList.remove('hidden', 'status-ok', 'status-ko', 'border-green-500', 'border-red-500');
             
-            // CONTROLLO NUOVO BRAND "TABLEKEY"
             if(!input.startsWith("TABLEKEY-T")) { showToast("Codice non valido", "⚠️"); return; }
             const tID = input.split("-")[1].replace("T", "");
             
@@ -708,6 +708,14 @@
             if (myTablesCount === 0) container.innerHTML = '<p class="text-[10px] text-slate-600 text-center py-20 italic font-black uppercase">Nessun tavolo.</p>';
             document.getElementById('pr-wallet-total').innerText = "€ " + wallet.toFixed(2);
         }
+        function apriConfig(idx) { selectedTavolo = prenotazioni[idx]; document.getElementById('modal-config').classList.remove('hidden'); document.getElementById('conf-nome').innerText = "Tavolo " + selectedTavolo.tavolo_id; selectedTavolo.budget_calc = selectedTavolo.prezzo; document.getElementById('conf-budget').innerText = "€ " + selectedTavolo.budget_calc; const list = document.getElementById('conf-lista-bottiglie'); list.innerHTML = ""; bevande.forEach(b => { list.innerHTML += `<div class="bg-slate-900/50 p-5 rounded-3xl flex justify-between items-center border border-slate-800"><div><p class="font-black text-sm uppercase text-white italic">${b[0]}</p><p class="text-xs text-yellow-500 font-bold">€ ${b[1]}</p></div><button onclick="ordina('${b[0]}', ${b[1]})" class="bg-white text-black px-5 py-2 rounded-xl font-black text-[9px] uppercase italic active:scale-95 transition-transform">Aggiungi</button></div>`; }); }
+        function ordina(n, p) { if(selectedTavolo.budget_calc >= p) { selectedTavolo.budget_calc -= p; if(!selectedTavolo.bottiglie) selectedTavolo.bottiglie = []; selectedTavolo.bottiglie.push(n); document.getElementById('conf-budget').innerText = "€ " + selectedTavolo.budget_calc; } else { showToast("Budget esaurito!", "⚠️"); } }
+        async function inviaOrdineFinale() { if(!selectedTavolo.orario) return showToast("Seleziona orario!", "⏰"); selectedTavolo.note = document.getElementById('note-ordine').value; const { error } = await client.from('prenotazioni').update({ status: "Inviato", orario: selectedTavolo.orario, note: selectedTavolo.note, bottiglie: selectedTavolo.bottiglie }).eq('id', selectedTavolo.id); if(!error) { showToast("Ordine Inviato!", "🚀"); document.getElementById('modal-config').classList.add('hidden'); fetchPrenotazioni(); } }
+        function apriDettagliDirezione(idx) { const p = prenotazioni[idx]; document.getElementById('modal-direzione-dettagli').classList.remove('hidden'); document.getElementById('dir-titolo').innerText = "Tavolo " + p.tavolo_id; document.getElementById('dir-orario').innerText = p.orario || "--:--"; document.getElementById('dir-ingressi').innerText = `${p.ingressi_usati||0} / ${p.ingressi_totali}`; document.getElementById('dir-note').innerText = p.note || "Nessuna."; const list = document.getElementById('dir-bottiglie'); list.innerHTML = (p.bottiglie && p.bottiglie.length > 0) ? p.bottiglie.map(b => `<p>• ${b}</p>`).join('') : "<p class='text-slate-600'>Nessun ordine.</p>"; }
+        function setOrario(t, b) { selectedTavolo.orario = t; document.querySelectorAll('.orario-btn').forEach(btn => { btn.classList.replace('bg-yellow-500', 'bg-slate-800'); btn.classList.replace('text-black', 'text-slate-400'); }); b.classList.replace('bg-slate-800', 'bg-yellow-500'); b.classList.replace('text-slate-400', 'text-black'); }
+        function richiediAccredito() { window.open(`https://wa.me/393331234567?text=Saldo: ${document.getElementById('pr-wallet-total').innerText}`, '_blank'); }
+        function copiaLink() { navigator.clipboard.writeText("nighthub.it/ref/" + window.currentUser); showToast("Link Copiato!", "🔗"); }
+        function aggiornaClassifica() { let stats = {}; const COMM = 0.10; prenotazioni.forEach(p => { let name = (p.pr_ref || "").trim().toUpperCase(); if(name) { if(!stats[name]) stats[name] = 0; stats[name] += (p.prezzo * COMM); } }); let sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]); const div = document.getElementById('classifica-live'); div.innerHTML = ""; if(sorted.length === 0) { div.innerHTML = '<p class="text-[9px] text-slate-600 text-center py-4 italic">In attesa di dati...</p>'; return; } sorted.forEach((item, index) => { let rank = index + 1; let color = rank === 1 ? 'text-yellow-400' : 'text-white'; let icon = rank === 1 ? '👑 ' : `${rank}. `; div.innerHTML += `<div class="flex justify-between items-center p-4 bg-slate-950 rounded-2xl border border-yellow-500/20"><span class="text-xs font-black italic ${color}">${icon}${item[0]}</span><span class="text-xs font-black text-yellow-500 italic">€ ${item[1].toFixed(2)}</span></div>`; }); }
         function apriCreaPR() { document.getElementById('modal-crea-pr').classList.remove('hidden'); }
     </script>
 </body>
