@@ -23,8 +23,8 @@
         .glass { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
         
         /* Scanner Video Fullscreen */
-        #reader { width: 100%; height: 100%; overflow: hidden; }
-        #reader video { object-fit: cover; width: 100% !important; height: 100% !important; border-radius: 20px; }
+        #reader { width: 100%; height: 100%; background: black; }
+        #reader video { object-fit: cover; width: 100% !important; height: 100% !important; }
 
         /* Custom Range Slider */
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
@@ -169,7 +169,7 @@
                     <h3 class="text-2xl font-black italic text-white mb-6">SCANNER INGRESSO</h3>
                     <div id="modal-scanner" class="hidden fixed inset-0 bg-black z-[6000] flex flex-col justify-center items-center">
                         <button onclick="stopScanner()" class="absolute top-8 right-8 text-white bg-black/50 px-4 py-2 rounded-full font-black z-[6010]">CHIUDI X</button>
-                        <div id="reader" class="w-full h-full"></div>
+                        <div id="reader"></div>
                     </div>
                     
                     <button onclick="startScanner()" class="w-full py-5 bg-slate-800 text-white rounded-2xl font-black uppercase text-xs mb-6 shadow-lg">📷 AVVIA CAMERA FULLSCREEN</button>
@@ -512,31 +512,20 @@
             }, 1000);
         }
 
+        // --- SCANNER CON DEBUG ---
         function startScanner() {
             if(html5QrCode) return;
             document.getElementById('modal-scanner').classList.remove('hidden');
             html5QrCode = new Html5Qrcode("reader");
 
-            // Configurazione Scanner
-            const config = {
-                fps: 10,
-                qrbox: { width: 300, height: 300 }, // Leggermente più piccolo del video per margine
-                aspectRatio: 1.0
-            };
-
-            // Configurazione Camera (HD FORCE)
-            const cameraConfig = {
-                facingMode: "environment",
-                width: { min: 640, ideal: 1280, max: 1920 },
-                height: { min: 480, ideal: 720, max: 1080 },
-                focusMode: "continuous" // Tenta di forzare il focus su Android/Chrome
-            };
-
-            html5QrCode.start(cameraConfig, config, onScanSuccess)
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            // Tenta di avviare la camera SENZA restrizioni (massima compatibilità)
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
                 .catch(err => {
-                    // Fallback se la camera HD fallisce
-                    console.log("HD failed, retrying low res", err);
-                    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+                    // SE FALLISCE: Mostra l'errore esatto all'utente
+                    alert("ERRORE CAMERA: " + err);
+                    stopScanner();
                 });
         }
         function onScanSuccess(decodedText) { stopScanner(); document.getElementById('security-scan-input').value = decodedText; checkIn(); }
