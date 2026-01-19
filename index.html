@@ -479,6 +479,15 @@
                 navigator.share({ title: 'NightHub Pay', text: `Ciao! Ecco la mia quota per il tavolo ${selectedTavolo.tavolo_id}.`, url: 'https://nighthub.it/pay' }).then(() => { showToast("Link inviato!", "🚀"); processaPagamentoReale(); }).catch(console.error);
             } else { showToast("Link copiato! Invialo su WhatsApp.", "🔗"); processaPagamentoReale(); }
         }
+        
+        // CORRETTO: Funzione per chiudere e resettare il modale pagamento
+        function chiudiModalePagamento() {
+            document.getElementById('modal-pagamento').classList.add('hidden');
+            // Reset per la prossima volta
+            document.getElementById('pay-step-calc').classList.remove('hidden');
+            document.getElementById('pay-step-checkout').classList.add('hidden');
+            document.getElementById('pay-step-loading').classList.add('hidden');
+        }
 
         // --- GESTIONE PASS & SECURITY ---
         function mostraPassDigitale() {
@@ -546,14 +555,9 @@
         // --- BOSS ACTIONS ---
         async function resetTotale() {
             if(!confirm("Sicuro di voler CANCELLARE TUTTE le prenotazioni?")) return;
-            // FIX: Usiamo 'gt' (greater than) 0 invece di neq, spesso più sicuro per il filtro delete
             const { error } = await client.from('prenotazioni').delete().gt('id', 0);
-            if(error) {
-                alert("Errore cancellazione: " + error.message);
-            } else {
-                alert("Database Svuotato!");
-                location.reload();
-            }
+            if(error) { alert("Errore cancellazione: " + error.message); } 
+            else { alert("Database Svuotato!"); location.reload(); }
         }
 
         // --- UTILS & UI UPDATE ---
@@ -576,12 +580,9 @@
                 
                 if (showInMyTables) {
                     myTablesCount++;
-                    // LOGICA DI VISUALIZZAZIONE DIFFERENZIATA
                     if (window.userRole === 'cliente') {
-                        // CLIENTE: Vede tutto
                          container.innerHTML += `<div class="glass p-6 rounded-[2rem] border-yellow-500/30 mb-4"><div class="flex justify-between items-start mb-4"><div><p class="text-[10px] font-black text-yellow-500 uppercase italic">Stato: ${p.status}</p><h3 class="text-xl font-black text-white italic">Tavolo ${p.tavolo_id}</h3><p class="text-[10px] text-slate-400 font-bold mt-1">👥 ${p.ingressi_usati||0} / ${p.ingressi_totali} Entrati</p></div><div class="flex flex-col gap-2"><button onclick="recuperaPass(${i})" class="bg-slate-800 text-white border border-yellow-500/50 px-3 py-2 rounded-xl font-black text-[9px] uppercase italic">🎫 QR CODE</button><button onclick="aggiungiOspite(${i})" class="bg-green-600 text-white px-3 py-2 rounded-xl font-black text-[9px] uppercase italic shadow-lg flex items-center gap-1 justify-center">+ 👤 ADD</button></div></div><button onclick="apriConfig(${i})" class="w-full ${p.status === "Inviato" ? "bg-green-500 text-black" : "bg-yellow-500 text-black"} text-[9px] font-black px-4 py-3 rounded-xl uppercase italic shadow-lg">${p.status === "Inviato" ? "Ordine Inviato ✓" : "Ordina Bottiglie"}</button></div>`;
                     } else if (window.userRole === 'pr') {
-                        // PR: Vede solo riepilogo (READ ONLY)
                         let myComm = (p.prezzo * COMM).toFixed(2);
                         container.innerHTML += `
                         <div class="glass p-6 rounded-[2rem] border-blue-500/30 mb-4 relative overflow-hidden">
