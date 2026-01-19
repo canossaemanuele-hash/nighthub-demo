@@ -160,7 +160,7 @@
                     <h3 class="text-[10px] font-black uppercase text-slate-500 mb-4 italic">Registro Tavoli Online</h3>
                     <div id="registro-direzione" class="space-y-3"></div>
                 </div>
-                <button onclick="resetTotale()" class="w-full py-4 bg-red-600/10 border-2 border-red-600 text-red-600 rounded-2xl font-black text-[10px] uppercase italic active:scale-95 transition-transform">⚠️ Svuota Database</button>
+                <button onclick="resetTotale()" class="w-full py-4 bg-red-600/10 border-2 border-red-600 text-red-600 rounded-2xl font-black text-[10px] uppercase italic active:scale-95 transition-transform">⚠️ Svuota Database (Boss Only)</button>
             </div>
 
             <div id="sezione-security" class="sezione-contenuto space-y-6">
@@ -542,8 +542,21 @@
                 if(navigator.vibrate) navigator.vibrate([50, 50]);
             }
         }
+        
+        // --- BOSS ACTIONS ---
+        async function resetTotale() {
+            if(!confirm("Sicuro di voler CANCELLARE TUTTE le prenotazioni?")) return;
+            // FIX: Usiamo 'gt' (greater than) 0 invece di neq, spesso più sicuro per il filtro delete
+            const { error } = await client.from('prenotazioni').delete().gt('id', 0);
+            if(error) {
+                alert("Errore cancellazione: " + error.message);
+            } else {
+                alert("Database Svuotato!");
+                location.reload();
+            }
+        }
 
-        // --- UTILS ---
+        // --- UTILS & UI UPDATE ---
         function logout() { location.reload(); }
         function entraNelLocale(n) { document.getElementById('landing-page').classList.add('hidden'); document.getElementById('app-content').classList.remove('hidden'); document.getElementById('titolo-locale').innerText = n; fetchPrenotazioni(); loadConfig(); }
         function tornaAllaHome() { document.getElementById('landing-page').classList.remove('hidden'); document.getElementById('app-content').classList.add('hidden'); }
@@ -551,7 +564,49 @@
         function switchView(m) { if(navigator.vibrate) navigator.vibrate(10); document.querySelectorAll('.tab-active').forEach(e => e.classList.remove('tab-active')); document.querySelectorAll('.sezione-contenuto').forEach(e => e.classList.remove('active')); if(m === 'security') document.getElementById('sezione-security').classList.add('active'); else { document.getElementById('btn-' + m).classList.add('tab-active'); document.getElementById('sezione-' + m).classList.add('active'); fetchPrenotazioni(); } }
         function checkPromo(input) { document.getElementById('pr-input').classList.toggle('border-green-500', input.value.length > 0); }
         function showToast(message, icon = "✅") { const c = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = 'toast'; t.innerHTML = `<span><span class="toast-icon">${icon}</span>${message}</span>`; c.appendChild(t); setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(20px)'; setTimeout(() => t.remove(), 300); }, 3000); }
-        function aggiornaInterfacce() { const container = document.getElementById('lista-prenotazioni-attive'); container.innerHTML = ""; const registroDir = document.getElementById('registro-direzione'); registroDir.innerHTML = ""; const registroPR = document.getElementById('lista-vendite-pr'); registroPR.innerHTML = ""; let wallet = 0; const COMM = 0.10; let myTablesCount = 0; prenotazioni.forEach((p, i) => { let showInMyTables = (window.userRole === 'cliente' && p.cliente === window.currentUser) || (window.userRole === 'pr' && p.pr_ref === window.currentUser); if (showInMyTables) { myTablesCount++; container.innerHTML += `<div class="glass p-6 rounded-[2rem] border-yellow-500/30 mb-4"><div class="flex justify-between items-start mb-4"><div><p class="text-[10px] font-black text-yellow-500 uppercase italic">Stato: ${p.status}</p><h3 class="text-xl font-black text-white italic">Tavolo ${p.tavolo_id}</h3><p class="text-[10px] text-slate-400 font-bold mt-1">👥 ${p.ingressi_usati||0} / ${p.ingressi_totali} Entrati</p></div><div class="flex flex-col gap-2"><button onclick="recuperaPass(${i})" class="bg-slate-800 text-white border border-yellow-500/50 px-3 py-2 rounded-xl font-black text-[9px] uppercase italic">🎫 QR CODE</button><button onclick="aggiungiOspite(${i})" class="bg-green-600 text-white px-3 py-2 rounded-xl font-black text-[9px] uppercase italic shadow-lg flex items-center gap-1 justify-center">+ 👤 ADD</button></div></div><button onclick="apriConfig(${i})" class="w-full ${p.status === "Inviato" ? "bg-green-500 text-black" : "bg-yellow-500 text-black"} text-[9px] font-black px-4 py-3 rounded-xl uppercase italic shadow-lg">${p.status === "Inviato" ? "Ordine Inviato ✓" : "Ordina Bottiglie"}</button></div>`; } let prLabel = p.pr_ref ? `<span class="text-yellow-500 text-[9px]"> (PR: ${p.pr_ref})</span>` : ""; registroDir.innerHTML += `<div onclick="apriDettagliDirezione(${i})" class="flex justify-between items-center p-4 bg-slate-950 rounded-2xl border border-slate-800 cursor-pointer active:scale-95 transition-transform"><div><p class="text-white text-[11px] font-black uppercase italic">${p.cliente}${prLabel}</p><p class="text-[9px] text-slate-500 uppercase font-black">T${p.tavolo_id} • 👥 ${p.ingressi_usati||0}/${p.ingressi_totali}</p></div><span class="text-green-500 font-black text-[11px] italic">€ ${p.prezzo}</span></div>`; if (window.userRole === 'pr' && p.pr_ref === window.currentUser) { let prov = p.prezzo * COMM; wallet += prov; registroPR.innerHTML += `<div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 flex justify-between items-center"><div><p class="text-[11px] font-black text-white italic uppercase">${p.cliente}</p><p class="text-[9px] text-slate-500 font-bold uppercase">T${p.tavolo_id}</p></div><p class="text-sm font-black text-white italic">€ ${prov.toFixed(2)}</p></div>`; } }); if (myTablesCount === 0) container.innerHTML = '<p class="text-[10px] text-slate-600 text-center py-20 italic font-black uppercase">Nessun tavolo.</p>'; document.getElementById('pr-wallet-total').innerText = "€ " + wallet.toFixed(2); }
+        
+        function aggiornaInterfacce() {
+            const container = document.getElementById('lista-prenotazioni-attive'); container.innerHTML = "";
+            const registroDir = document.getElementById('registro-direzione'); registroDir.innerHTML = "";
+            const registroPR = document.getElementById('lista-vendite-pr'); registroPR.innerHTML = "";
+            let wallet = 0; const COMM = 0.10; let myTablesCount = 0;
+
+            prenotazioni.forEach((p, i) => {
+                let showInMyTables = (window.userRole === 'cliente' && p.cliente === window.currentUser) || (window.userRole === 'pr' && p.pr_ref === window.currentUser);
+                
+                if (showInMyTables) {
+                    myTablesCount++;
+                    // LOGICA DI VISUALIZZAZIONE DIFFERENZIATA
+                    if (window.userRole === 'cliente') {
+                        // CLIENTE: Vede tutto
+                         container.innerHTML += `<div class="glass p-6 rounded-[2rem] border-yellow-500/30 mb-4"><div class="flex justify-between items-start mb-4"><div><p class="text-[10px] font-black text-yellow-500 uppercase italic">Stato: ${p.status}</p><h3 class="text-xl font-black text-white italic">Tavolo ${p.tavolo_id}</h3><p class="text-[10px] text-slate-400 font-bold mt-1">👥 ${p.ingressi_usati||0} / ${p.ingressi_totali} Entrati</p></div><div class="flex flex-col gap-2"><button onclick="recuperaPass(${i})" class="bg-slate-800 text-white border border-yellow-500/50 px-3 py-2 rounded-xl font-black text-[9px] uppercase italic">🎫 QR CODE</button><button onclick="aggiungiOspite(${i})" class="bg-green-600 text-white px-3 py-2 rounded-xl font-black text-[9px] uppercase italic shadow-lg flex items-center gap-1 justify-center">+ 👤 ADD</button></div></div><button onclick="apriConfig(${i})" class="w-full ${p.status === "Inviato" ? "bg-green-500 text-black" : "bg-yellow-500 text-black"} text-[9px] font-black px-4 py-3 rounded-xl uppercase italic shadow-lg">${p.status === "Inviato" ? "Ordine Inviato ✓" : "Ordina Bottiglie"}</button></div>`;
+                    } else if (window.userRole === 'pr') {
+                        // PR: Vede solo riepilogo (READ ONLY)
+                        let myComm = (p.prezzo * COMM).toFixed(2);
+                        container.innerHTML += `
+                        <div class="glass p-6 rounded-[2rem] border-blue-500/30 mb-4 relative overflow-hidden">
+                            <div class="absolute top-0 right-0 bg-blue-600 px-3 py-1 rounded-bl-xl"><p class="text-[9px] font-black text-white uppercase">PR VIEW</p></div>
+                            <h3 class="text-xl font-black text-white italic mb-1">Tavolo ${p.tavolo_id}</h3>
+                            <p class="text-[10px] text-slate-400 font-bold mb-4 uppercase">Cliente: <span class="text-white">${p.cliente}</span></p>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div class="bg-slate-900/50 p-3 rounded-xl"><p class="text-[9px] text-slate-500 uppercase font-black">Totale</p><p class="text-sm font-black text-white">€ ${p.prezzo}</p></div>
+                                <div class="bg-blue-900/20 p-3 rounded-xl border border-blue-500/30"><p class="text-[9px] text-blue-400 uppercase font-black">Tua %</p><p class="text-sm font-black text-blue-500">€ ${myComm}</p></div>
+                            </div>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="text-[10px] uppercase font-black text-slate-500">Stato: <span class="text-white">${p.status}</span></span>
+                                <span class="text-[10px] uppercase font-black text-slate-500">Ingressi: <span class="text-white">${p.ingressi_usati||0}/${p.ingressi_totali}</span></span>
+                            </div>
+                        </div>`;
+                    }
+                }
+
+                let prLabel = p.pr_ref ? `<span class="text-yellow-500 text-[9px]"> (PR: ${p.pr_ref})</span>` : "";
+                registroDir.innerHTML += `<div onclick="apriDettagliDirezione(${i})" class="flex justify-between items-center p-4 bg-slate-950 rounded-2xl border border-slate-800 cursor-pointer active:scale-95 transition-transform"><div><p class="text-white text-[11px] font-black uppercase italic">${p.cliente}${prLabel}</p><p class="text-[9px] text-slate-500 uppercase font-black">T${p.tavolo_id} • 👥 ${p.ingressi_usati||0}/${p.ingressi_totali}</p></div><span class="text-green-500 font-black text-[11px] italic">€ ${p.prezzo}</span></div>`;
+                if (window.userRole === 'pr' && p.pr_ref === window.currentUser) { let prov = p.prezzo * COMM; wallet += prov; registroPR.innerHTML += `<div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 flex justify-between items-center"><div><p class="text-[11px] font-black text-white italic uppercase">${p.cliente}</p><p class="text-[9px] text-slate-500 font-bold uppercase">T${p.tavolo_id}</p></div><p class="text-sm font-black text-white italic">€ ${prov.toFixed(2)}</p></div>`; }
+            });
+            if (myTablesCount === 0) container.innerHTML = '<p class="text-[10px] text-slate-600 text-center py-20 italic font-black uppercase">Nessun tavolo.</p>';
+            document.getElementById('pr-wallet-total').innerText = "€ " + wallet.toFixed(2);
+        }
         function apriConfig(idx) { selectedTavolo = prenotazioni[idx]; document.getElementById('modal-config').classList.remove('hidden'); document.getElementById('conf-nome').innerText = "Tavolo " + selectedTavolo.tavolo_id; selectedTavolo.budget_calc = selectedTavolo.prezzo; document.getElementById('conf-budget').innerText = "€ " + selectedTavolo.budget_calc; const list = document.getElementById('conf-lista-bottiglie'); list.innerHTML = ""; bevande.forEach(b => { list.innerHTML += `<div class="bg-slate-900/50 p-5 rounded-3xl flex justify-between items-center border border-slate-800"><div><p class="font-black text-sm uppercase text-white italic">${b[0]}</p><p class="text-xs text-yellow-500 font-bold">€ ${b[1]}</p></div><button onclick="ordina('${b[0]}', ${b[1]})" class="bg-white text-black px-5 py-2 rounded-xl font-black text-[9px] uppercase italic active:scale-95 transition-transform">Aggiungi</button></div>`; }); }
         function ordina(n, p) { if(selectedTavolo.budget_calc >= p) { selectedTavolo.budget_calc -= p; if(!selectedTavolo.bottiglie) selectedTavolo.bottiglie = []; selectedTavolo.bottiglie.push(n); document.getElementById('conf-budget').innerText = "€ " + selectedTavolo.budget_calc; } else { showToast("Budget esaurito!", "⚠️"); } }
         async function inviaOrdineFinale() { if(!selectedTavolo.orario) return showToast("Seleziona orario!", "⏰"); selectedTavolo.note = document.getElementById('note-ordine').value; const { error } = await client.from('prenotazioni').update({ status: "Inviato", orario: selectedTavolo.orario, note: selectedTavolo.note, bottiglie: selectedTavolo.bottiglie }).eq('id', selectedTavolo.id); if(!error) { showToast("Ordine Inviato!", "🚀"); document.getElementById('modal-config').classList.add('hidden'); fetchPrenotazioni(); } }
@@ -560,6 +615,7 @@
         function richiediAccredito() { window.open(`https://wa.me/393331234567?text=Saldo: ${document.getElementById('pr-wallet-total').innerText}`, '_blank'); }
         function copiaLink() { navigator.clipboard.writeText("nighthub.it/ref/" + window.currentUser); showToast("Link Copiato!", "🔗"); }
         function aggiornaClassifica() { let stats = {}; const COMM = 0.10; prenotazioni.forEach(p => { let name = (p.pr_ref || "").trim().toUpperCase(); if(name) { if(!stats[name]) stats[name] = 0; stats[name] += (p.prezzo * COMM); } }); let sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]); const div = document.getElementById('classifica-live'); div.innerHTML = ""; if(sorted.length === 0) { div.innerHTML = '<p class="text-[9px] text-slate-600 text-center py-4 italic">In attesa di dati...</p>'; return; } sorted.forEach((item, index) => { let rank = index + 1; let color = rank === 1 ? 'text-yellow-400' : 'text-white'; let icon = rank === 1 ? '👑 ' : `${rank}. `; div.innerHTML += `<div class="flex justify-between items-center p-4 bg-slate-950 rounded-2xl border border-yellow-500/20"><span class="text-xs font-black italic ${color}">${icon}${item[0]}</span><span class="text-xs font-black text-yellow-500 italic">€ ${item[1].toFixed(2)}</span></div>`; }); }
+        function apriCreaPR() { document.getElementById('modal-crea-pr').classList.remove('hidden'); }
     </script>
 </body>
 </html>
