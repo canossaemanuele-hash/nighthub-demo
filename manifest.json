@@ -1,0 +1,21 @@
+{
+  "name": "TableKey",
+  "short_name": "TableKey",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "description": "Enterprise Access per Locali",
+  "icons": [
+    {
+      "src": "https://ui-avatars.com/api/?name=TK&background=020617&color=eab308&size=192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://ui-avatars.com/api/?name=TK&background=020617&color=eab308&size=512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
