@@ -1,6 +1,18 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <link rel="manifest" href="./manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').then(registration => {
+        console.log('ServiceWorker registrato con successo:', registration.scope);
+      }).catch(err => {
+        console.log('Registrazione ServiceWorker fallita:', err);
+      });
+    });
+  }
+</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">
     <title>TableKey</title>
@@ -353,30 +365,55 @@
 
         // --- AUTH & INIT ---
         async function checkLogin() {
-            const u = document.getElementById('user-input').value;
-            const p = document.getElementById('pass-input').value;
-            // Accesso Security
-            if (u === 'security' && p === 'gate') {
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('app-content').classList.remove('hidden');
-                document.getElementById('nav-generale').classList.add('hidden');
-                document.getElementById('nav-security').classList.remove('hidden');
-                switchView('security');
-                return;
-            }
-            // Accesso Utenti
-            if(['cliente', 'pr123', 'boss'].includes(p)) {
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('landing-page').classList.remove('hidden');
-                window.userRole = p === 'boss' ? 'boss' : (p === 'pr123' ? 'pr' : 'cliente');
-                document.getElementById('btn-pr').classList.toggle('hidden', window.userRole !== 'pr');
-                document.getElementById('btn-capo').classList.toggle('hidden', window.userRole !== 'boss');
-                window.currentUser = u || "Ospite";
-                await loadConfig(); // Scarica prezzi dal DB
-                fetchPrenotazioni();
-                showToast("Login effettuato", "🔓");
-            } else { showToast("Password errata", "⛔"); }
-        }
+    const email = document.getElementById('user-input').value; // Ora useremo la mail
+    const password = document.getElementById('pass-input').value;
+    
+    // Mostra caricamento
+    const btn = document.querySelector('button[onclick="checkLogin()"]');
+    const originalText = btn.innerText;
+    btn.innerText = "ACCESSO IN CORSO...";
+
+    // Chiamata vera a Supabase Auth
+    const { data, error } = await client.auth.signInWithPassword({
+        email: email,
+        password: password,
+    });
+
+    btn.innerText = originalText;
+
+    if (error) {
+        showToast("Credenziali errate", "⛔");
+        return;
+    }
+
+    // Se il login ha successo, Supabase ci dà l'utente
+    const user = data.user;
+    window.currentUser = user.email;
+
+    // ATTENZIONE: In un'app vera, il "ruolo" va salvato nel database, non dedotto dall'email.
+    // Ma per ora, per adattarci al tuo codice, facciamo un check sull'email:
+    if (email.includes('security')) {
+        window.userRole = 'security';
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app-content').classList.remove('hidden');
+        document.getElementById('nav-generale').classList.add('hidden');
+        document.getElementById('nav-security').classList.remove('hidden');
+        switchView('security');
+    } else {
+        if (email.includes('boss')) window.userRole = 'boss';
+        else if (email.includes('pr')) window.userRole = 'pr';
+        else window.userRole = 'cliente';
+
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('landing-page').classList.remove('hidden');
+        document.getElementById('btn-pr').classList.toggle('hidden', window.userRole !== 'pr');
+        document.getElementById('btn-capo').classList.toggle('hidden', window.userRole !== 'boss');
+        
+        await loadConfig();
+        fetchPrenotazioni();
+        showToast("Login effettuato!", "🔓");
+    }
+}
 
         async function loadConfig() {
             const { data, error } = await client.from('impostazioni').select('*');
