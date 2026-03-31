@@ -15,7 +15,7 @@
 </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">
-    <title>TableKey</title>
+    <title>Malua 54</title>
     
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -106,20 +106,33 @@
 
     <div id="login-screen" class="fixed inset-0 z-[3000] flex flex-col items-center justify-center p-8 bg-black/90" style="background-image: url('https://images.unsplash.com/photo-1566737236500-c8ac43014a67?auto=format&fit=crop&w=1200&q=80'); background-size: cover;">
         <div class="w-full max-w-sm glass p-8 md:p-10 rounded-3xl md:rounded-[3rem] shadow-2xl border-yellow-500/20 text-center">
-            <h1 class="text-4xl font-black italic tracking-tighter text-white mb-2">TABLE<span class="text-yellow-500 font-black">KEY</span></h1>
+            <h1 class="text-4xl font-black italic tracking-tighter text-white mb-2">MALUA<span class="text-yellow-500 font-black">54</span></h1>
             <p class="text-[9px] uppercase tracking-[0.3em] text-slate-400 mb-8 font-bold italic">Enterprise Access</p>
-            <div class="space-y-4">
-                <input type="text" id="user-input" placeholder="Username" class="w-full bg-slate-950/50 border border-slate-700 p-4 rounded-2xl text-sm focus:border-yellow-500 outline-none text-white italic">
+            
+            <div id="login-form" class="space-y-4">
+                <input type="text" id="user-input" placeholder="Email" class="w-full bg-slate-950/50 border border-slate-700 p-4 rounded-2xl text-sm focus:border-yellow-500 outline-none text-white italic">
                 <input type="password" id="pass-input" placeholder="Password" class="w-full bg-slate-950/50 border border-slate-700 p-4 rounded-2xl text-sm focus:border-yellow-500 outline-none text-white">
                 <button onclick="checkLogin()" class="w-full bg-yellow-500 text-black font-black py-4 rounded-2xl uppercase text-xs tracking-widest italic shadow-xl active:scale-95 transition-transform">Entra</button>
+                <p class="text-[10px] text-slate-500 font-bold uppercase italic mt-4">Nuovo nel Club? <a href="javascript:void(0)" onclick="toggleAuth('signup')" class="text-yellow-500">Registrati</a></p>
             </div>
+            <div id="signup-form" class="hidden space-y-4 text-left">
+                <input type="email" id="reg-email" placeholder="Email" class="w-full bg-slate-950/50 border border-slate-700 p-4 rounded-2xl text-sm focus:border-yellow-500 outline-none text-white italic">
+                <input type="password" id="reg-pass" placeholder="Password (min 6 car.)" class="w-full bg-slate-950/50 border border-slate-700 p-4 rounded-2xl text-sm focus:border-yellow-500 outline-none text-white">
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="selectRegRole('cliente', this)" class="reg-role-btn py-3 rounded-xl border border-yellow-500 bg-slate-900 text-white text-[10px] font-black uppercase italic">Cliente</button>
+                    <button onclick="selectRegRole('pr', this)" class="reg-role-btn py-3 rounded-xl border border-slate-700 text-slate-500 text-[10px] font-black uppercase italic">Promoter PR</button>
+                </div>
+                <button onclick="handleSignup()" class="w-full bg-white text-black font-black py-4 rounded-2xl uppercase text-xs tracking-widest italic shadow-xl active:scale-95 transition-transform">Crea Account</button>
+                <p class="text-[10px] text-slate-500 font-bold uppercase italic mt-4 text-center">Hai già un account? <a href="javascript:void(0)" onclick="toggleAuth('login')" class="text-yellow-500">Accedi</a></p>
+            </div>
+
         </div>
     </div>
 
     <div id="landing-page" class="hidden fixed inset-0 z-[1000] flex flex-col p-8 overflow-y-auto bg-black/90">
         <div class="flex justify-end mb-4"><button onclick="logout()" class="glass px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Logout ✕</button></div>
         <header class="text-center py-6">
-            <h1 class="text-6xl font-black italic tracking-tighter text-white">TABLE<span class="text-yellow-500">KEY</span></h1>
+            <h1 class="text-6xl font-black italic tracking-tighter text-white">MALUA<span class="text-yellow-500">54</span></h1>
         </header>
         <div class="space-y-6 max-w-md mx-auto w-full pt-6">
             <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-2 italic">Serate in Programma</h2>
@@ -203,7 +216,7 @@
                         <textarea id="event-desc" placeholder="Descrizione / Info" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold h-20"></textarea> 
                         <div class="space-y-2"> 
                             <label class="text-[9px] uppercase text-slate-500 font-black ml-2">Locandina (PNG/JPG)</label> 
-                            <input type="file" id="event-poster" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-yellow-500 file:text-black hover:file:bg-yellow-600"> 
+                            <input type="file" id="event-poster" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-yellow-500 file:text-black hover:file:bg-yellow-600"><label class="text-[9px] uppercase text-slate-500 font-black ml-2 mt-2 block">Piantina Tavoli (Mappa)</label><input type="file" id="event-map" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-yellow-500 file:text-black hover:file:bg-yellow-600 mb-2"> 
                         </div> 
                         <button onclick="creaNuovaSerata()" id="btn-crea-serata" class="w-full py-4 bg-yellow-500 text-black rounded-xl font-black uppercase text-[10px] italic shadow-lg active:scale-95 transition-transform">🚀 Pubblica Serata</button> 
                     </div> 
@@ -242,7 +255,7 @@
                     
                     <button onclick="startScanner()" class="w-full py-5 bg-slate-800 text-white rounded-2xl font-black uppercase text-xs mb-6 shadow-lg">📷 AVVIA CAMERA FULLSCREEN</button>
                     <p class="text-[9px] text-slate-500 font-bold uppercase mb-2">Inserimento manuale</p>
-                    <input id="security-scan-input" type="text" placeholder="Es. TABLEKEY-T12-..." class="w-full bg-slate-950 border border-slate-600 p-4 rounded-xl text-white text-center font-mono text-xs mb-4 outline-none focus:border-yellow-500">
+                    <input id="security-scan-input" type="text" placeholder="Es. MALUA54-T12-..." class="w-full bg-slate-950 border border-slate-600 p-4 rounded-xl text-white text-center font-mono text-xs mb-4 outline-none focus:border-yellow-500">
                     <button onclick="checkIn()" class="w-full py-4 bg-yellow-500 text-black rounded-xl font-black uppercase text-xs italic active:scale-95 transition-transform shadow-xl">VERIFICA</button>
                 </div>
                 <div id="security-result" class="hidden glass p-8 rounded-[3rem] text-center border-4"></div>
@@ -389,7 +402,7 @@
         </div>
     </div>
 
-    <div id="modal-mappa" class="hidden fixed inset-0 bg-black z-[4000] flex flex-col"><div class="p-5 flex justify-between bg-slate-950 items-center"><span class="text-yellow-500 font-black text-[10px] uppercase italic">Piantina HD</span><button onclick="toggleMappa(false)" class="bg-white text-black px-4 py-2 rounded-xl text-xs font-black uppercase italic">Esci</button></div><div class="flex-1 img-viewer"><img src="https://i.postimg.cc/8zqmMw4B/Image-6.jpg"></div></div>
+    <div id="modal-mappa" class="hidden fixed inset-0 bg-black z-[4000] flex flex-col"><div class="p-5 flex justify-between bg-slate-950 items-center"><span class="text-yellow-500 font-black text-[10px] uppercase italic">Piantina Malua 54</span><button onclick="toggleMappa(false)" class="bg-white text-black px-4 py-2 rounded-xl text-xs font-black uppercase italic">Esci</button></div><div class="flex-1 img-viewer overflow-auto flex items-center justify-center p-4"><img id="mappa-img-viewer" src="https://i.postimg.cc/8zqmMw4B/Image-6.jpg" class="max-w-full max-h-full object-contain"></div></div>
     <div id="toast-container"></div>
 
     <script>
@@ -410,6 +423,33 @@
         window.currentSerataId = null;
 
         // --- AUTH & INIT ---
+        
+        let regRole = 'cliente';
+        function toggleAuth(mode) {
+            document.getElementById('login-form').classList.toggle('hidden', mode === 'signup');
+            document.getElementById('signup-form').classList.toggle('hidden', mode === 'login');
+        }
+        function selectRegRole(role, btn) {
+            regRole = role;
+            document.querySelectorAll('.reg-role-btn').forEach(b => {
+                b.classList.remove('border-yellow-500', 'bg-slate-900', 'text-white');
+                b.classList.add('border-slate-700', 'text-slate-500');
+            });
+            btn.classList.add('border-yellow-500', 'bg-slate-900', 'text-white');
+            btn.classList.remove('border-slate-700', 'text-slate-500');
+        }
+        async function handleSignup() {
+            const email = document.getElementById('reg-email').value;
+            const pass = document.getElementById('reg-pass').value;
+            if(!email || pass.length < 6) return showToast("Dati non validi", "⚠️");
+            const { data, error } = await client.auth.signUp({
+                email, password: pass,
+                options: { data: { role: regRole } }
+            });
+            if(error) showToast(error.message, "⛔");
+            else { showToast("Account creato! Ora accedi", "🎉"); toggleAuth('login'); }
+        }
+
         async function checkLogin() {
             const email = document.getElementById('user-input').value;
             const password = document.getElementById('pass-input').value;
@@ -430,19 +470,20 @@
                 return;
             }
 
+            
             const user = data.user;
             window.currentUser = user.email;
+            window.userRole = user.user_metadata.role || 'cliente';
+            if(email.includes('boss')) window.userRole = 'boss'; // Override for legacy boss
 
-            if (email.includes('security')) {
-                window.userRole = 'security';
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('app-content').classList.remove('hidden');
                 document.getElementById('nav-generale').classList.add('hidden');
                 document.getElementById('nav-security').classList.remove('hidden');
                 switchView('security');
             } else {
-                if (email === 'boss@nighthub.com') window.userRole = 'boss';
-                else if (email === 'pr@nighthub.com') window.userRole = 'pr';
+                if (email === 'boss@malua54.com') window.userRole = 'boss';
+                else if (email === 'pr@malua54.com') window.userRole = 'pr';
                 else window.userRole = 'cliente';
 
                 document.getElementById('login-screen').classList.add('hidden');
@@ -539,11 +580,13 @@
             });
         }
 
+        
         async function creaNuovaSerata() {
             const title = document.getElementById("event-title").value.trim();
             const date = document.getElementById("event-date").value;
             const desc = document.getElementById("event-desc").value.trim();
             const fileInput = document.getElementById("event-poster");
+            const mapInput = document.getElementById("event-map");
             const btn = document.getElementById("btn-crea-serata");
 
             if (!title || !date) return showToast("Titolo e Data obbligatori", "⚠️");
@@ -554,20 +597,22 @@
             let imageUrl = null;
             if (fileInput.files.length > 0) {
                 const file = fileInput.files[0];
-                const fileExt = file.name.split(".").pop();
-                const fileName = `${Math.random()}.${fileExt}`;
-                const filePath = `${fileName}`;
-
-                const { data: uploadData, error: uploadError } = await client.storage
-                    .from("posters")
-                    .upload(filePath, file);
-
-                if (uploadError) {
-                    showToast("Errore caricamento immagine", "⛔");
-                    console.error(uploadError);
-                } else {
-                    const { data: urlData } = client.storage.from("posters").getPublicUrl(filePath);
+                const fileName = `${Math.random()}-${file.name}`;
+                const { error: uploadError } = await client.storage.from("posters").upload(fileName, file);
+                if (!uploadError) {
+                    const { data: urlData } = client.storage.from("posters").getPublicUrl(fileName);
                     imageUrl = urlData.publicUrl;
+                }
+            }
+
+            let mapUrl = null;
+            if (mapInput.files.length > 0) {
+                const file = mapInput.files[0];
+                const fileName = `${Math.random()}-${file.name}`;
+                const { error: uploadError } = await client.storage.from("maps").upload(fileName, file);
+                if (!uploadError) {
+                    const { data: urlData } = client.storage.from("maps").getPublicUrl(fileName);
+                    mapUrl = urlData.publicUrl;
                 }
             }
 
@@ -576,8 +621,10 @@
                 data: date,
                 descrizione: desc,
                 immagine_url: imageUrl,
+                mappa_url: mapUrl,
                 attiva: true
             }]);
+
 
             btn.innerText = "🚀 Pubblica Serata";
             btn.disabled = false;
@@ -750,7 +797,7 @@
 
         function dividiConAmici() {
             if(navigator.share) {
-                navigator.share({ title: 'TableKey Pay', text: `Ciao! Ecco la mia quota per il tavolo ${selectedTavolo.tavolo_id}.`, url: 'https://tablekey.it/pay' }).then(() => { showToast("Link inviato!", "🚀"); processaPagamentoReale(); }).catch(console.error);
+                navigator.share({ title: 'Malua 54 Pay', text: `Ciao! Ecco la mia quota per il tavolo ${selectedTavolo.tavolo_id}.`, url: 'https://malua54.it/pay' }).then(() => { showToast("Link inviato!", "🚀"); processaPagamentoReale(); }).catch(console.error);
             } else { showToast("Link copiato! Invialo su WhatsApp.", "🔗"); processaPagamentoReale(); }
         }
         
@@ -767,7 +814,7 @@
             document.getElementById('pass-details').innerHTML = `<p class="text-white font-black text-xl uppercase">Tavolo ${selectedTavolo.tavolo_id}</p><p class="text-yellow-500 text-sm font-black italic mt-2">${selectedTavolo.cliente}</p>`;
             const rimasti = selectedTavolo.ingressi_totali - (selectedTavolo.ingressi_usati || 0);
             document.getElementById('pass-counter').innerHTML = `<div class="flex justify-between items-center"><div><p class="text-[9px] uppercase text-slate-400 font-bold">Ingressi Totali</p><p class="text-white font-black text-lg">${selectedTavolo.ingressi_usati || 0} / ${selectedTavolo.ingressi_totali}</p></div><div class="text-right"><p class="text-[9px] uppercase text-green-400 font-bold">Disponibili</p><p class="text-green-500 font-black text-2xl">${rimasti}</p></div></div>`;
-            let qrData = `TABLEKEY-T${selectedTavolo.tavolo_id}-${selectedTavolo.cliente}`;
+            let qrData = `MALUA54-T${selectedTavolo.tavolo_id}-${selectedTavolo.cliente}`;
             document.getElementById('qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrData)}`;
         }
         function recuperaPass(idx) { selectedTavolo = prenotazioni[idx]; mostraPassDigitale(); }
@@ -801,7 +848,7 @@
             const resDiv = document.getElementById('security-result');
             resDiv.classList.remove('hidden', 'status-ok', 'status-ko', 'border-green-500', 'border-red-500');
             
-            if(!input.startsWith("TABLEKEY-T")) { showToast("Codice non valido", "⚠️"); return; }
+            if(!input.startsWith("MALUA54-T")) { showToast("Codice non valido", "⚠️"); return; }
             const tID = input.split("-")[1].replace("T", "");
             
             const { data, error } = await client.from('prenotazioni').select('*').eq('tavolo_id', tID).eq('serata_id', window.currentSerataId).single();
@@ -835,8 +882,7 @@
 
         // --- UTILS & UI UPDATE ---
         function logout() { location.reload(); }
-        async function entraNelLocale(n, id) { 
-            window.currentSerataId = id; 
+        async function entraNelLocale(n, id) { window.currentSerataId = id; const s = serate.find(x => x.id === id); if(s && s.mappa_url) document.getElementById("mappa-img-viewer").src = s.mappa_url; else document.getElementById("mappa-img-viewer").src = "https://i.postimg.cc/8zqmMw4B/Image-6.jpg"; 
             document.getElementById('landing-page').classList.add('hidden'); 
             document.getElementById('app-content').classList.remove('hidden'); 
             document.getElementById('titolo-locale').innerText = n; 
