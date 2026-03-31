@@ -1,935 +1,408 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <link rel="manifest" href="./manifest.json">
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').then(registration => {
-        console.log('ServiceWorker registrato con successo:', registration.scope);
-      }).catch(err => {
-        console.log('Registrazione ServiceWorker fallita:', err);
-      });
-    });
-  }
-</script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">
-    <title>TableKey</title>
-
-    <meta name="theme-color" content="#020617">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="icon" href="https://ui-avatars.com/api/?name=TK&background=020617&color=eab308&size=512&font-size=0.4&rounded=false&bold=true">
-    <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=TK&background=020617&color=eab308&size=512&font-size=0.4&rounded=false&bold=true">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Malua 54 • Official Booking App</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200;0,800;1,200;1,800&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #020617; overscroll-behavior-y: none; }
-
-        /* UI Basics */
-        .tavolo { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; user-select: none; }
-        .tavolo:active { transform: scale(0.95); }
-        /* TAVOLO PRENOTATO: Più scuro e NON cliccabile */
-        .tavolo-prenotato { background-color: #1e293b !important; border-color: #334155 !important; color: #475569 !important; cursor: not-allowed !important; opacity: 0.5; pointer-events: none; }
-
-        .tab-active { background-color: #eab308 !important; color: #000 !important; font-weight: 900; box-shadow: 0 4px 15px rgba(234, 179, 8, 0.3); }
+        :root { --glass: rgba(255, 255, 255, 0.03); --glass-border: rgba(255, 255, 255, 0.08); }
+        body { background: #020617; color: white; font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+        .glass { background: var(--glass); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid var(--glass-border); }
+        .glass-deep { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border-bottom: 1px solid var(--glass-border); }
+        .text-gradient { background: linear-gradient(to right, #fbbf24, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .sezione-contenuto { display: none; }
         .sezione-contenuto.active { display: block; animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-        .glass { background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border: 1px solid rgba(255, 255, 255, 0.125); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5); }
-
-        /* Scanner Video */
-        #reader { width: 100%; height: 100%; background: black; }
-        #reader video { object-fit: cover; width: 100% !important; height: 100% !important; }
-
-        /* Range Slider */
-        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%; background: #eab308; cursor: pointer; margin-top: -10px; box-shadow: 0 0 10px rgba(234,179,8,0.5); }
-        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }
-
-        /* Security Colors */
-        .status-ok { background-color: #22c55e; color: black; }
-        .status-ko { background-color: #ef4444; color: white; }
-
-        /* Toast */
-        #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: 90%; max-width: 400px; }
-        .toast { background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(234, 179, 8, 0.3); color: white; padding: 16px; rounded-2xl; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; animation: slideUp 0.3s ease-out; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(10px); }
-        .img-viewer { width: 100%; height: 100%; overflow: auto; display: flex; align-items: flex-start; justify-content: center; background: #000; }
-        .img-viewer img { max-width: none; width: 250%; height: auto; padding: 20px; }
-        .spinner { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #eab308; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
-        .card-event { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        .card-event:hover { transform: translateY(-5px); }
-        input, textarea, select { transition: border-color 0.3s ease; }
-        input:focus, textarea:focus { border-color: #eab308 !important; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(234, 179, 8, 0.2); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(234, 179, 8, 0.4); }
-
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        body {
-            background: #020617;
-            position: relative;
-        }
-        body::after {
-            content: "";
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 30% 30%, rgba(234, 179, 8, 0.05) 0%, transparent 40%),
-                        radial-gradient(circle at 70% 70%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
-            z-index: -1;
-            pointer-events: none;
-        }
-        .glass {
-            background: rgba(15, 23, 42, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
-        .tavolo:not(.tavolo-prenotato):hover {
-            box-shadow: 0 0 15px rgba(234, 179, 8, 0.4);
-            border-color: rgba(234, 179, 8, 0.8);
-        }
-</style>
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 9999; background: rgba(0,0,0,0.9); border: 1px solid #fbbf24; padding: 12px 24px; border-radius: 20px; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; animation: slideUp 0.3s ease-out; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        @keyframes slideUp { from { transform: translate(-50%, 50px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+    </style>
 </head>
-<body class="text-slate-100 overflow-x-hidden">
+<body class="bg-slate-950">
 
-    <div id="login-screen" class="fixed inset-0 z-[3000] flex flex-col items-center justify-center p-8 bg-black/90" style="background-image: url('https://images.unsplash.com/photo-1566737236500-c8ac43014a67?auto=format&fit=crop&w=1200&q=80'); background-size: cover;">
-        <div class="w-full max-w-sm glass p-8 md:p-10 rounded-3xl md:rounded-[3rem] shadow-2xl border-yellow-500/20 text-center">
-            <h1 class="text-4xl font-black italic tracking-tighter text-white mb-2">TABLE<span class="text-yellow-500 font-black">KEY</span></h1>
-            <p class="text-[9px] uppercase tracking-[0.3em] text-slate-400 mb-8 font-bold italic">Enterprise Access</p>
-            <div class="space-y-4">
-                <input type="text" id="user-input" placeholder="Username" class="w-full bg-slate-950/50 border border-slate-700 p-4 rounded-2xl text-sm focus:border-yellow-500 outline-none text-white italic">
+    <!-- Auth Layer -->
+    <div id="auth-layer" class="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-8 text-center">
+        <div class="mb-12">
+            <h1 class="text-5xl font-black italic tracking-tighter text-white mb-2">MALUA<span class="text-yellow-500">54</span></h1>
+            <p class="text-[9px] uppercase tracking-[0.3em] text-slate-400 mb-8 font-bold italic">Official Enterprise Access</p>
+
+            <!-- Login -->
+            <div id="login-form" class="space-y-4">
+                <input type="text" id="user-input" placeholder="Email" class="w-full bg-slate-950/50 border border-slate-700 p-4 rounded-2xl text-sm focus:border-yellow-500 outline-none text-white italic">
                 <input type="password" id="pass-input" placeholder="Password" class="w-full bg-slate-950/50 border border-slate-700 p-4 rounded-2xl text-sm focus:border-yellow-500 outline-none text-white">
-                <button onclick="checkLogin()" class="w-full bg-yellow-500 text-black font-black py-4 rounded-2xl uppercase text-xs tracking-widest italic shadow-xl active:scale-95 transition-transform">Entra</button>
+                <button onclick="checkLogin()" class="w-full bg-yellow-500 text-black font-black py-4 rounded-2xl uppercase text-xs tracking-widest italic shadow-xl active:scale-95 transition-transform">Entra nel Club</button>
+                <p class="text-[10px] text-slate-500 font-bold uppercase italic mt-4">Nuovo nel Malua 54? <a href="javascript:void(0)" onclick="toggleAuth('signup')" class="text-yellow-500">Registrati qui</a></p>
+            </div>
+
+            <!-- Signup -->
+            <div id="signup-form" class="hidden space-y-4 text-left">
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="text" id="reg-nome" placeholder="Nome" class="bg-slate-950 border border-slate-700 p-4 rounded-2xl text-sm text-white italic w-full">
+                    <input type="text" id="reg-cognome" placeholder="Cognome" class="bg-slate-950 border border-slate-700 p-4 rounded-2xl text-sm text-white italic w-full">
+                </div>
+                <input type="email" id="reg-email" placeholder="Email" class="w-full bg-slate-950 border border-slate-700 p-4 rounded-2xl text-sm text-white italic">
+                <input type="password" id="reg-pass" placeholder="Password (min 6 car.)" class="w-full bg-slate-950 border border-slate-700 p-4 rounded-2xl text-sm text-white">
+
+                <p class="text-[9px] uppercase font-black text-slate-500 ml-2">Seleziona il tuo ruolo:</p>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="selectRole('cliente', this)" class="role-btn py-3 rounded-xl border border-slate-700 text-[10px] font-black uppercase italic text-slate-400 bg-slate-900 active-role">Cliente</button>
+                    <button onclick="selectRole('pr', this)" class="role-btn py-3 rounded-xl border border-slate-700 text-[10px] font-black uppercase italic text-slate-400">Team PR</button>
+                    <button onclick="selectRole('boss', this)" class="role-btn py-3 rounded-xl border border-slate-700 text-[10px] font-black uppercase italic text-slate-400">Boss</button>
+                </div>
+
+                <button onclick="handleSignup()" class="w-full bg-white text-black font-black py-4 rounded-2xl uppercase text-xs tracking-widest italic shadow-xl active:scale-95 transition-transform mt-4">Crea Account</button>
+                <p class="text-[10px] text-slate-500 font-bold uppercase italic mt-4 text-center">Hai già un account? <a href="javascript:void(0)" onclick="toggleAuth('login')" class="text-yellow-500">Accedi</a></p>
             </div>
         </div>
     </div>
 
-    <div id="landing-page" class="hidden fixed inset-0 z-[1000] flex flex-col p-8 overflow-y-auto bg-black/90">
-        <div class="flex justify-end mb-4"><button onclick="logout()" class="glass px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Logout ✕</button></div>
-        <header class="text-center py-6">
-            <h1 class="text-6xl font-black italic tracking-tighter text-white">TABLE<span class="text-yellow-500">KEY</span></h1>
-        </header>
-        <div class="space-y-6 max-w-md mx-auto w-full pt-6">
-            <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-2 italic">Serate in Programma</h2>
-            <div id="lista-serate" class="space-y-6">
-                <!-- Serate caricate dinamicamente -->
-                <div class="spinner"></div>
+    <!-- App Shell -->
+    <main id="app-shell" class="hidden min-h-screen pb-32">
+        <header class="p-6 flex justify-between items-center sticky top-0 z-50 glass-deep">
+            <div>
+                <h2 class="text-xl font-black italic tracking-tighter">MALUA<span class="text-yellow-500">54</span></h2>
+                <p id="label-ruolo" class="text-[8px] uppercase font-black text-slate-500 tracking-[0.2em] italic">Member Access</p>
             </div>
-        </div>
-    </div>
-
-    <div id="app-content" class="hidden min-h-screen">
-        <header class="p-5 border-b border-slate-900 text-center bg-slate-950/80 backdrop-blur-md sticky top-0 z-[100] flex justify-between items-center">
-            <button onclick="tornaAllaHome()" class="text-slate-500 text-[10px] font-black uppercase tracking-widest italic">← Locali</button>
-            <h1 id="titolo-locale" class="text-sm font-black uppercase text-yellow-500 italic">Club</h1>
-            <div class="w-10"></div>
+            <div class="flex items-center gap-3">
+                <button onclick="handleLogout()" class="bg-slate-900 border border-slate-800 p-3 rounded-full active:scale-90 transition-transform">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                </button>
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-600 p-[2px]">
+                    <div class="w-full h-full rounded-full bg-slate-950 flex items-center justify-center font-black text-xs italic" id="user-initials">--</div>
+                </div>
+            </div>
         </header>
 
-        <main class="p-4 max-w-md mx-auto pb-32">
-            <nav id="nav-generale" class="flex justify-between mb-8 bg-slate-900 p-1 rounded-2xl border border-slate-800 text-[10px] font-black uppercase text-center shadow-2xl italic">
-                <button onclick="switchView('cliente')" id="btn-cliente" class="flex-1 py-4 rounded-xl tab-active">Mappa</button>
-                <button onclick="switchView('prenotazioni')" id="btn-prenotazioni" class="flex-1 py-4 rounded-xl">I miei Tavoli</button>
-                <button onclick="switchView('pr')" id="btn-pr" class="hidden flex-1 py-4 rounded-xl">Area PR</button>
-                <button onclick="switchView('capo')" id="btn-capo" class="hidden flex-1 py-4 rounded-xl text-red-500">Gestione</button>
-            </nav>
-            <nav id="nav-security" class="hidden mb-8"><div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-center"><p class="text-xs font-black text-slate-400 uppercase tracking-widest">🛡️ Security Gate</p></div></nav>
+        <div class="p-6 max-w-2xl mx-auto">
+            <!-- Home -->
+            <div id="sezione-home" class="sezione-contenuto active space-y-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-black uppercase text-slate-500 tracking-widest italic">Eventi Malua 54</h3>
+                    <div class="h-[1px] flex-1 bg-slate-800 ml-4"></div>
+                </div>
+                <div id="lista-serate" class="space-y-4"></div>
+            </div>
 
-            <div id="sezione-cliente" class="sezione-contenuto active space-y-8">
-                <button onclick="toggleMappa(true)" class="w-full py-5 bg-gradient-to-r from-yellow-600 to-yellow-500 rounded-2xl text-black text-[10px] font-black uppercase tracking-widest italic shadow-xl">📍 Piantina Interattiva HD</button>
-                <div class="space-y-8">
+            <!-- Booking / Mappa -->
+            <div id="sezione-mappa" class="sezione-contenuto space-y-6">
+                <div class="flex items-center justify-between">
+                    <button onclick="cambiaSezione('home')" class="bg-slate-900 p-2 rounded-xl border border-slate-800">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <h3 id="titolo-serata-mappa" class="text-[10px] font-black uppercase text-yellow-500 italic">Mappa Tavoli Malua 54</h3>
+                    <div class="w-8"></div>
+                </div>
 
-                    <section>
-                        <div class="flex items-center gap-2 mb-4"><div class="h-4 w-1 bg-yellow-500 rounded-full"></div><div><h2 class="text-yellow-500 font-black uppercase text-[10px] tracking-widest italic">Gold Privé</h2><p id="label-price-prive" class="text-[9px] text-slate-500 font-bold uppercase">Caricamento...</p></div></div>
-                        <div class="grid grid-cols-3 gap-3">
-                            <div id="map-tavolo-1" onclick="selectTavolo('1', 'min_prive', 'Gold Privé')" class="tavolo h-16 bg-yellow-600/20 rounded-2xl flex items-center justify-center font-black text-sm border-2 border-yellow-500/50 text-yellow-500 italic">T1</div>
-                            <div id="map-tavolo-2" onclick="selectTavolo('2', 'min_prive', 'Gold Privé')" class="tavolo h-16 bg-yellow-600/20 rounded-2xl flex items-center justify-center font-black text-sm border-2 border-yellow-500/50 text-yellow-500 italic">T2</div>
-                            <div id="map-tavolo-12" onclick="selectTavolo('12', 'min_prive', 'Gold Privé')" class="tavolo h-16 bg-yellow-600/20 rounded-2xl flex items-center justify-center font-black text-sm border-2 border-yellow-500/50 text-yellow-500 italic">T12</div>
+                <div class="relative w-full aspect-[4/5] bg-slate-900 rounded-[2.5rem] border border-slate-800 overflow-hidden shadow-2xl">
+                    <img id="img-mappa" src="" class="w-full h-full object-contain p-4 opacity-50" alt="Mappa Locale">
+                    <div class="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
+                        <div class="glass p-6 rounded-3xl w-full">
+                            <input type="number" id="input-tavolo-id" placeholder="NUMERO TAVOLO" class="w-full bg-slate-950 border border-slate-700 p-4 rounded-2xl text-center font-black text-4xl text-yellow-500 outline-none mb-4 focus:border-yellow-500">
+                            <input type="text" id="pr-input" oninput="checkPromo(this)" placeholder="CODICE PROMO PR" class="w-full bg-slate-950 border border-slate-700 p-3 rounded-2xl text-center font-bold text-[10px] text-white outline-none">
                         </div>
-                    </section>
+                    </div>
+                </div>
 
-                    <section>
-                        <div class="flex items-center gap-2 mb-4"><div class="h-4 w-1 bg-green-500 rounded-full"></div><div><h2 class="text-green-500 font-black uppercase text-[10px] tracking-widest italic">Pista Centrale</h2><p id="label-price-pista" class="text-[9px] text-slate-500 font-bold uppercase">Caricamento...</p></div></div>
-                        <div class="grid grid-cols-3 gap-3">
-                            <div id="map-tavolo-3" onclick="selectTavolo('3', 'min_pista', 'Pista')" class="tavolo h-14 bg-green-600/10 rounded-2xl flex items-center justify-center font-black text-xs border border-green-500/30 text-green-500 italic">T3</div>
-                            <div id="map-tavolo-4" onclick="selectTavolo('4', 'min_pista', 'Pista')" class="tavolo h-14 bg-green-600/10 rounded-2xl flex items-center justify-center font-black text-xs border border-green-500/30 text-green-500 italic">T4</div>
-                            <div id="map-tavolo-5" onclick="selectTavolo('5', 'min_pista', 'Pista')" class="tavolo h-14 bg-green-600/10 rounded-2xl flex items-center justify-center font-black text-xs border border-green-500/30 text-green-500 italic">T5</div>
-                            <div id="map-tavolo-6" onclick="selectTavolo('6', 'min_pista', 'Pista')" class="tavolo h-14 bg-green-600/10 rounded-2xl flex items-center justify-center font-black text-xs border border-green-500/30 text-green-500 italic">T6</div>
-                            <div id="map-tavolo-7" onclick="selectTavolo('7', 'min_pista', 'Pista')" class="tavolo h-14 bg-green-600/10 rounded-2xl flex items-center justify-center font-black text-xs border border-green-500/30 text-green-500 italic">T7</div>
-                            <div id="map-tavolo-8" onclick="selectTavolo('8', 'min_pista', 'Pista')" class="tavolo h-14 bg-green-600/10 rounded-2xl flex items-center justify-center font-black text-xs border border-green-500/30 text-green-500 italic">T8</div>
-                            <div id="map-tavolo-9" onclick="selectTavolo('9', 'min_pista', 'Pista')" class="tavolo h-14 bg-green-600/10 rounded-2xl flex items-center justify-center font-black text-xs border border-green-500/30 text-green-500 italic">T9</div>
-                            <div id="map-tavolo-10" onclick="selectTavolo('10', 'min_pista', 'Pista')" class="tavolo h-14 bg-green-600/10 rounded-2xl flex items-center justify-center font-black text-xs border border-green-500/30 text-green-500 italic">T10</div>
-                            <div id="map-tavolo-11" onclick="selectTavolo('11', 'min_pista', 'Pista')" class="tavolo h-14 bg-green-600/10 rounded-2xl flex items-center justify-center font-black text-xs border border-green-500/30 text-green-500 italic">T11</div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="glass p-6 rounded-3xl text-center">
+                        <p class="text-[9px] font-black text-slate-500 uppercase italic mb-1">Persone</p>
+                        <div class="flex items-center justify-center gap-4">
+                            <button onclick="updateQty(-1)" class="w-10 h-10 rounded-full bg-slate-800 font-black text-xl active:scale-90 transition-transform">-</button>
+                            <span id="qty-persone" class="text-2xl font-black italic w-8">5</span>
+                            <button onclick="updateQty(1)" class="w-10 h-10 rounded-full bg-slate-800 font-black text-xl active:scale-90 transition-transform">+</button>
                         </div>
-                    </section>
-
-                    <section>
-                        <div class="flex items-center gap-2 mb-4"><div class="h-4 w-1 bg-blue-500 rounded-full"></div><div><h2 class="text-blue-500 font-black uppercase text-[10px] tracking-widest italic">Fuori Pista & Garden</h2><p id="label-price-garden" class="text-[9px] text-slate-500 font-bold uppercase">Caricamento...</p></div></div>
-                        <div class="grid grid-cols-4 gap-2">
-                            <div id="map-tavolo-13" onclick="selectTavolo('13', 'min_garden', 'Garden')" class="tavolo h-12 bg-blue-600/10 rounded-xl flex items-center justify-center font-black text-[10px] border border-blue-500/30 text-blue-500 italic">T13</div>
-                            <div id="map-tavolo-14" onclick="selectTavolo('14', 'min_garden', 'Garden')" class="tavolo h-12 bg-blue-600/10 rounded-xl flex items-center justify-center font-black text-[10px] border border-blue-500/30 text-blue-500 italic">T14</div>
-                            <div id="map-tavolo-15" onclick="selectTavolo('15', 'min_garden', 'Garden')" class="tavolo h-12 bg-blue-600/10 rounded-xl flex items-center justify-center font-black text-[10px] border border-blue-500/30 text-blue-500 italic">T15</div>
-                            <div id="map-tavolo-16" onclick="selectTavolo('16', 'min_garden', 'Garden')" class="tavolo h-12 bg-blue-600/10 rounded-xl flex items-center justify-center font-black text-[10px] border border-blue-500/30 text-blue-500 italic">T16</div>
-                            <div id="map-tavolo-17" onclick="selectTavolo('17', 'min_garden', 'Garden')" class="tavolo h-12 bg-blue-600/10 rounded-xl flex items-center justify-center font-black text-[10px] border border-blue-500/30 text-blue-500 italic">T17</div>
-                            <div id="map-tavolo-18" onclick="selectTavolo('18', 'min_garden', 'Garden')" class="tavolo h-12 bg-blue-600/10 rounded-xl flex items-center justify-center font-black text-[10px] border border-blue-500/30 text-blue-500 italic">T18</div>
-                            <div id="map-tavolo-19" onclick="selectTavolo('19', 'min_garden', 'Garden')" class="tavolo h-12 bg-blue-600/10 rounded-xl flex items-center justify-center font-black text-[10px] border border-blue-500/30 text-blue-500 italic">T19</div>
-                            <div id="map-tavolo-20" onclick="selectTavolo('20', 'min_garden', 'Garden')" class="tavolo h-12 bg-blue-600/10 rounded-xl flex items-center justify-center font-black text-[10px] border border-blue-500/30 text-blue-500 italic">T20</div>
-                        </div>
-                    </section>
+                    </div>
+                    <button onclick="confermaPrenotazione()" class="bg-yellow-500 text-black rounded-3xl font-black uppercase text-[10px] italic shadow-lg shadow-yellow-500/20 active:scale-95 transition-transform">Prenota Tavolo</button>
                 </div>
             </div>
 
+            <!-- Lista Prenotazioni -->
             <div id="sezione-prenotazioni" class="sezione-contenuto space-y-4">
                 <div id="lista-prenotazioni-attive" class="space-y-4"></div>
             </div>
 
+            <!-- Pannello Boss -->
             <div id="sezione-capo" class="sezione-contenuto space-y-6">
-                <div class="glass p-6 rounded-3xl md:rounded-[2.5rem] border-yellow-500/30">
-                    <h3 class="text-[10px] font-black uppercase text-yellow-500 mb-6 italic tracking-widest text-center">📅 Gestione Serate</h3>
+                <div class="glass p-6 rounded-3xl border-yellow-500/30">
+                    <h3 class="text-[10px] font-black uppercase text-yellow-500 mb-6 italic tracking-widest text-center">Gestione Serate Malua 54</h3>
                     <div class="space-y-4">
                         <input type="text" id="event-title" placeholder="Titolo Serata" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold">
                         <input type="date" id="event-date" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold">
-                        <textarea id="event-desc" placeholder="Descrizione / Info" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold h-20"></textarea>
+                        <textarea id="event-desc" placeholder="Dettagli serata..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold h-20"></textarea>
                         <div class="space-y-2">
-                            <label class="text-[9px] uppercase text-slate-500 font-black ml-2">Locandina (PNG/JPG)</label>
-                            <input type="file" id="event-poster" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-yellow-500 file:text-black hover:file:bg-yellow-600">
+                            <label class="text-[9px] uppercase text-slate-500 font-black ml-2">Locandina Serata</label>
+                            <input type="file" id="event-poster" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-yellow-500 file:text-black">
+                            <label class="text-[9px] uppercase text-slate-500 font-black ml-2">Mappa Tavoli (Piantina)</label>
+                            <input type="file" id="event-map" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-yellow-500 file:text-black">
                         </div>
-                        <button onclick="creaNuovaSerata()" id="btn-crea-serata" class="w-full py-4 bg-yellow-500 text-black rounded-xl font-black uppercase text-[10px] italic shadow-lg active:scale-95 transition-transform">🚀 Pubblica Serata</button>
+                        <button onclick="creaNuovaSerata()" id="btn-crea-serata" class="w-full py-4 bg-yellow-500 text-black rounded-xl font-black uppercase text-[10px] italic shadow-lg active:scale-95">🚀 Pubblica Evento</button>
                     </div>
                 </div>
-                <div class="glass p-6 rounded-3xl md:rounded-[2.5rem] border-red-500/30">
-                    <h3 class="text-[10px] font-black uppercase text-red-500 mb-6 italic tracking-widest text-center">⚙️ Configurazione Serata</h3>
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center"><label class="text-[10px] uppercase text-slate-400 font-bold">Minimo Pista</label><input type="number" id="input-min-pista" class="bg-slate-900 border border-slate-700 rounded-xl p-2 w-24 text-center text-white text-xs font-black"></div>
-                        <div class="flex justify-between items-center"><label class="text-[10px] uppercase text-slate-400 font-bold">Minimo Privè</label><input type="number" id="input-min-prive" class="bg-slate-900 border border-slate-700 rounded-xl p-2 w-24 text-center text-white text-xs font-black"></div>
-                        <div class="flex justify-between items-center"><label class="text-[10px] uppercase text-slate-400 font-bold">Minimo Garden</label><input type="number" id="input-min-garden" class="bg-slate-900 border border-slate-700 rounded-xl p-2 w-24 text-center text-white text-xs font-black"></div>
-                        <div class="flex justify-between items-center"><label class="text-[10px] uppercase text-slate-400 font-bold">Quota a Testa</label><input type="number" id="input-min-testa" class="bg-slate-900 border border-slate-700 rounded-xl p-2 w-24 text-center text-white text-xs font-black"></div>
-                    </div>
-                    <button onclick="aggiornaListino()" class="mt-6 w-full py-3 bg-red-600 text-white rounded-xl font-black uppercase text-[10px] italic shadow-lg active:scale-95 transition-transform">💾 Salva Listino</button>
+                <div class="glass p-6 rounded-3xl border-slate-800">
+                    <h3 class="text-[10px] font-black uppercase text-slate-500 text-center mb-6 italic tracking-widest">Registro Booking Malua 54</h3>
+                    <div id="registro-direzione" class="space-y-2"></div>
                 </div>
-
-                <button onclick="apriGestionePR()" class="w-full py-4 bg-blue-600/20 border border-blue-500/50 text-blue-400 rounded-2xl font-black text-[10px] uppercase italic active:scale-95 transition-transform">👥 Gestisci Team PR</button>
-
-                <div class="glass p-6 rounded-3xl md:rounded-[2.5rem] border-yellow-500/30">
-                    <h3 class="text-[10px] font-black uppercase text-yellow-500 text-center mb-6 italic tracking-widest">🏆 Classifica Top PR</h3>
-                    <div id="classifica-live" class="space-y-3"></div>
-                </div>
-                <div class="glass p-6 rounded-3xl md:rounded-[2.5rem] border-slate-800">
-                    <h3 class="text-[10px] font-black uppercase text-slate-500 mb-4 italic">Registro Tavoli Online</h3>
-                    <div id="registro-direzione" class="space-y-3"></div>
-                </div>
-                <button onclick="resetTotale()" class="w-full py-4 bg-red-600/10 border-2 border-red-600 text-red-600 rounded-2xl font-black text-[10px] uppercase italic active:scale-95 transition-transform">⚠️ Svuota Database (Boss Only)</button>
             </div>
 
-            <div id="sezione-security" class="sezione-contenuto space-y-6">
-                <div class="glass p-8 rounded-[3rem] border-slate-700 text-center shadow-2xl">
-                    <h3 class="text-2xl font-black italic text-white mb-6">SCANNER INGRESSO</h3>
-                    <div id="modal-scanner" class="hidden fixed inset-0 bg-black z-[6000] flex flex-col justify-center items-center">
-                        <button onclick="stopScanner()" class="absolute top-8 right-8 text-white bg-black/50 px-4 py-2 rounded-full font-black z-[6010]">CHIUDI X</button>
-                        <div id="reader"></div>
-                    </div>
-
-                    <button onclick="startScanner()" class="w-full py-5 bg-slate-800 text-white rounded-2xl font-black uppercase text-xs mb-6 shadow-lg">📷 AVVIA CAMERA FULLSCREEN</button>
-                    <p class="text-[9px] text-slate-500 font-bold uppercase mb-2">Inserimento manuale</p>
-                    <input id="security-scan-input" type="text" placeholder="Es. TABLEKEY-T12-..." class="w-full bg-slate-950 border border-slate-600 p-4 rounded-xl text-white text-center font-mono text-xs mb-4 outline-none focus:border-yellow-500">
-                    <button onclick="checkIn()" class="w-full py-4 bg-yellow-500 text-black rounded-xl font-black uppercase text-xs italic active:scale-95 transition-transform shadow-xl">VERIFICA</button>
-                </div>
-                <div id="security-result" class="hidden glass p-8 rounded-[3rem] text-center border-4"></div>
-            </div>
-
+            <!-- Pannello PR -->
             <div id="sezione-pr" class="sezione-contenuto space-y-6">
-                <div class="glass p-8 rounded-[3rem] border-green-500/30 text-center shadow-2xl relative overflow-hidden">
-                    <p class="text-[10px] text-green-400 uppercase font-black italic mb-2 tracking-widest">Wallet Provvigioni</p>
-                    <p id="pr-wallet-total" class="text-5xl font-black text-white italic tracking-tighter mb-1">€ 0,00</p>
-                    <button onclick="richiediAccredito()" class="mt-4 w-full py-3 bg-white text-black rounded-xl font-black uppercase text-[10px] italic">💸 Richiedi Accredito</button>
+                <div class="glass p-8 rounded-[2.5rem] border-blue-500/30 relative overflow-hidden">
+                    <p class="text-[10px] font-black uppercase text-slate-500 mb-1 italic">Commissioni Malua 54</p>
+                    <h2 id="pr-wallet-total" class="text-5xl font-black text-white italic tracking-tighter">€ 0.00</h2>
+                    <div class="flex gap-3 mt-6">
+                        <button onclick="richiediAccredito()" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase italic">Incassa Saldo</button>
+                        <button onclick="copiaLink()" class="p-4 bg-slate-900 border border-slate-800 rounded-2xl active:scale-90">
+                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </button>
+                    </div>
                 </div>
-                <div class="glass p-6 rounded-3xl md:rounded-[2.5rem] border-slate-800">
-                    <h3 class="text-[10px] font-black uppercase text-slate-500 mb-4 italic">Registro Vendite</h3>
-                    <div id="lista-vendite-pr" class="space-y-3"></div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <div id="modal-gestione-pr" class="hidden fixed inset-0 bg-slate-950 z-[2500] p-6 overflow-y-auto">
-        <div class="max-w-md mx-auto">
-            <header class="flex justify-between items-center mb-8 mt-2">
-                <h2 class="text-2xl font-black uppercase italic text-blue-500">Team PR</h2>
-                <button onclick="document.getElementById('modal-gestione-pr').classList.add('hidden')" class="text-slate-500 font-black text-[10px] uppercase italic">Chiudi X</button>
-            </header>
-
-            <div class="bg-slate-900/50 p-6 rounded-3xl md:rounded-[2.5rem] border border-blue-500/20 mb-8">
-                <h3 class="text-[10px] font-black uppercase text-slate-400 mb-4 italic">Aggiungi Nuovo PR</h3>
-                <div class="space-y-3">
-                    <input type="text" id="new-pr-name" placeholder="Nome Completo" class="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-xs text-white outline-none focus:border-blue-500">
-                    <input type="text" id="new-pr-code" placeholder="Codice Univoco (es. marco_pr)" class="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-xs text-white outline-none focus:border-blue-500">
-                    <button onclick="aggiungiPR()" class="w-full py-3 bg-blue-600 text-white rounded-xl font-black uppercase text-[10px] italic active:scale-95 transition-transform">➕ Aggiungi al Team</button>
-                </div>
-            </div>
-
-            <h3 class="text-[10px] font-black uppercase text-slate-500 mb-4 italic pl-4">Lista PR Attivi</h3>
-            <div id="lista-team-pr" class="space-y-3">
-                </div>
-        </div>
-    </div>
-
-    <div id="modal-pagamento" class="hidden fixed inset-0 bg-black/95 z-[2000] p-6 flex flex-col justify-center items-center">
-        <div id="pay-step-calc" class="w-full max-w-sm glass p-8 rounded-[3rem] border-yellow-500/50">
-            <h2 class="text-2xl font-black italic uppercase text-white mb-6 text-center">Prenota Tavolo</h2>
-
-            <div class="mb-6">
-                <div class="flex justify-between text-xs font-black uppercase mb-2 text-slate-400"><span>Ospiti</span><span id="label-persone" class="text-white text-lg">5 Persone</span></div>
-                <input type="range" id="slider-persone" min="1" max="100" value="5" oninput="updatePriceCalculation()">
-                <p id="warn-persone" class="hidden text-[9px] text-yellow-500 mt-1 font-bold italic text-center">⚠️ Gruppo numeroso: contattare ingresso</p>
-            </div>
-
-            <div class="mb-8">
-                <div class="flex justify-between text-xs font-black uppercase mb-2 text-slate-400"><span>Budget a Testa</span><span id="label-budget" class="text-yellow-500 text-lg">€ 30</span></div>
-                <input type="range" id="slider-budget" min="30" max="200" step="10" value="30" oninput="updatePriceCalculation()">
-                <p class="text-[9px] text-slate-500 mt-2 text-center">Include credito bottiglie</p>
-            </div>
-
-            <div class="bg-slate-950 p-6 rounded-3xl mb-6 border border-slate-800 text-center">
-                <p class="text-[9px] uppercase text-slate-500 font-black mb-1">Prezzo Finale</p>
-                <p id="calc-total" class="text-4xl font-black text-white italic">€ 0</p>
-                <p id="calc-note" class="text-[9px] text-green-500 mt-1 font-bold italic"></p>
-            </div>
-
-            <button onclick="goToCheckout()" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-black py-5 rounded-2xl uppercase text-xs italic shadow-xl active:scale-95 transition-transform">Procedi al Pagamento</button>
-            <button onclick="chiudiModalePagamento()" class="w-full text-slate-500 text-[10px] font-black uppercase mt-4 italic">Annulla</button>
-        </div>
-
-        <div id="pay-step-checkout" class="hidden w-full max-w-sm glass p-8 rounded-[3rem] border-slate-700">
-            <h3 class="text-white font-black italic mb-6 text-center uppercase tracking-widest text-sm">Dati di Pagamento</h3>
-            <div class="space-y-4">
-                <input type="text" id="customer-name" placeholder="Nome Cognome" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white text-sm outline-none focus:border-yellow-500">
-                <input type="text" placeholder="Carta di Credito" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white text-sm outline-none focus:border-yellow-500">
-                <div class="grid grid-cols-2 gap-4">
-                    <input type="text" placeholder="MM/AA" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white text-sm">
-                    <input type="text" placeholder="CVV" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-2xl text-white text-sm">
-                </div>
-                <div class="space-y-2 mt-4 pt-4 border-t border-slate-800">
-                    <label class="text-[9px] font-black text-yellow-500 uppercase ml-2">Codice Promo / PR</label>
-                    <input id="pr-input" oninput="checkPromo(this)" type="text" placeholder="Es. marco_pr" class="w-full bg-slate-950/50 border border-yellow-500/30 p-3 rounded-2xl text-white text-xs outline-none focus:border-yellow-500 italic">
-                </div>
-                <button onclick="processaPagamentoReale()" class="w-full bg-yellow-500 text-black font-black py-5 rounded-2xl uppercase text-xs italic mt-4 shadow-xl active:scale-95 transition-transform">Conferma Ordine</button>
-                <button onclick="dividiConAmici()" class="w-full bg-slate-800 text-white font-black py-4 rounded-2xl text-[10px] uppercase border border-slate-700 italic active:scale-95 transition-transform mt-2">Dividi con Amici 👥</button>
-                <button onclick="backToCalc()" class="w-full text-slate-500 text-[9px] font-black uppercase mt-2 italic">← Modifica Importo</button>
+                <div id="lista-vendite-pr" class="space-y-3 mt-4"></div>
             </div>
         </div>
 
-        <div id="pay-step-loading" class="hidden flex flex-col items-center justify-center p-10 glass rounded-[3rem] w-full max-w-sm"><div class="spinner mb-6"></div><p class="text-white font-black italic uppercase text-lg tracking-widest mb-2">Attendere...</p><p class="text-slate-400 text-[10px] uppercase font-bold">Autorizzazione Bancaria</p></div>
-    </div>
-
-    <div id="modal-pass" class="hidden fixed inset-0 bg-black z-[3000] flex flex-col items-center justify-center p-6">
-        <div class="w-full max-w-sm glass p-8 rounded-[3rem] border-yellow-500/50 text-center relative">
-            <button onclick="chiudiPass()" class="absolute top-6 right-6 text-slate-500 font-black">X</button>
-            <h2 class="text-3xl font-black italic uppercase text-white mb-2">PASS</h2>
-            <p class="text-[10px] text-yellow-500 font-black uppercase tracking-widest mb-8">Accesso Garantito</p>
-            <div class="bg-white p-4 rounded-2xl mb-6 mx-auto w-48 h-48 flex items-center justify-center">
-                <img id="qr-image" src="" alt="QR Code" class="w-full h-full object-contain">
+        <nav class="fixed bottom-0 left-0 right-0 p-4 pb-8 glass-deep border-t border-white/5 z-50">
+            <div class="max-w-md mx-auto flex justify-around items-center">
+                <button onclick="cambiaSezione('home')" class="nav-btn flex flex-col items-center gap-1 text-yellow-500" data-section="home">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                    <span class="text-[8px] font-black uppercase italic">Club</span>
+                </button>
+                <button onclick="cambiaSezione('prenotazioni')" class="nav-btn flex flex-col items-center gap-1 text-slate-500" data-section="prenotazioni">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    <span class="text-[8px] font-black uppercase italic">Tavoli</span>
+                </button>
+                <button id="nav-pr" onclick="cambiaSezione('pr')" class="hidden nav-btn flex flex-col items-center gap-1 text-slate-500" data-section="pr">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span class="text-[8px] font-black uppercase italic">Wallet</span>
+                </button>
+                <button id="nav-boss" onclick="cambiaSezione('capo')" class="hidden nav-btn flex flex-col items-center gap-1 text-slate-500" data-section="capo">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    <span class="text-[8px] font-black uppercase italic">Boss</span>
+                </button>
             </div>
-            <div id="pass-details" class="space-y-2 mb-6"></div>
-            <div id="pass-counter" class="bg-slate-800 p-3 rounded-xl border border-slate-600 mb-4">
-                </div>
-            <button onclick="showToast('Salvato in Galleria!', '💾')" class="w-full py-4 bg-slate-800 text-white rounded-2xl font-black uppercase text-[10px]">Salva Pass</button>
+        </nav>
+    </main>
+
+    <div id="modal-pass" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-xl"></div>
+        <div class="glass p-10 rounded-[3rem] w-full max-w-sm text-center relative border-yellow-500/20">
+            <button onclick="document.getElementById('modal-pass').classList.add('hidden')" class="absolute top-6 right-6 text-slate-500">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <p id="pass-tavolo" class="text-[10px] font-black uppercase text-yellow-500 italic mb-1">Malua 54 Pass</p>
+            <h2 id="pass-cliente" class="text-3xl font-black text-white italic uppercase tracking-tighter mb-8">--</h2>
+            <div class="bg-white p-6 rounded-[2.5rem] mb-8 inline-block shadow-2xl">
+                <img id="pass-qr" src="" class="w-48 h-48" alt="Pass QR Code">
+            </div>
+            <div id="pass-counter" class="bg-slate-900 rounded-3xl p-6 text-left border border-slate-800"></div>
         </div>
     </div>
 
-    <div id="modal-scanner" class="hidden fixed inset-0 bg-black z-[6000]">
-         <button onclick="stopScanner()" class="absolute top-8 right-8 text-white bg-black/50 px-4 py-2 rounded-full font-black z-[6010]">CHIUDI X</button>
-         <div id="reader" class="w-full h-full"></div>
-    </div>
-
-    <div id="modal-config" class="hidden fixed inset-0 bg-slate-950 z-[2500] p-6 overflow-y-auto">
-        <div class="max-w-md mx-auto pb-20">
-            <header class="flex justify-between items-center mb-6 mt-2"><h2 id="conf-nome" class="text-2xl font-black uppercase italic text-white">Tavolo</h2><button onclick="document.getElementById('modal-config').classList.add('hidden')" class="text-slate-500 font-black text-[10px] uppercase italic">Chiudi X</button></header>
-            <div class="grid grid-cols-2 gap-4 mb-8">
-                <div class="glass p-5 rounded-3xl border-green-500/30 text-center"><p class="text-[9px] uppercase text-green-500 font-black mb-1 italic">Residuo</p><p id="conf-budget" class="text-3xl font-black text-white italic">€ 0</p></div>
-                <div class="glass p-5 rounded-3xl border-yellow-500/30 text-center"><p class="text-[9px] uppercase text-yellow-500 font-black mb-1 italic">Carrello</p><p id="conf-spesa" class="text-3xl font-black text-white italic">€ 0</p></div>
-            </div>
-            <div class="mb-8 bg-slate-900/50 p-6 rounded-3xl border border-slate-800">
-                <label class="text-[10px] font-black uppercase text-slate-400 mb-3 block italic">Orario di Servizio</label>
-                <div class="grid grid-cols-4 gap-2 mb-4">
-                    <button onclick="setOrario('23:30', this)" class="orario-btn bg-slate-800 text-slate-400 py-2 rounded-xl text-[10px] font-black">23:30</button>
-                    <button onclick="setOrario('00:00', this)" class="orario-btn bg-slate-800 text-slate-400 py-2 rounded-xl text-[10px] font-black">00:00</button>
-                    <button onclick="setOrario('00:30', this)" class="orario-btn bg-slate-800 text-slate-400 py-2 rounded-xl text-[10px] font-black">00:30</button>
-                    <button onclick="setOrario('01:00', this)" class="orario-btn bg-slate-800 text-slate-400 py-2 rounded-xl text-[10px] font-black">01:00</button>
-                </div>
-                <input type="text" id="note-ordine" placeholder="Note per i Barman..." class="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-xs text-white outline-none focus:border-yellow-500 italic">
-            </div>
-            <div id="conf-lista-bottiglie" class="space-y-3 mb-8"></div>
-            <button onclick="inviaOrdineFinale()" class="w-full py-5 bg-gradient-to-r from-yellow-500 to-yellow-600 text-black rounded-2xl font-black uppercase text-xs tracking-widest shadow-2xl italic border border-yellow-400">🚀 Conferma e Invia Ordine</button>
-        </div>
-    </div>
-
-    <div id="modal-direzione-dettagli" class="hidden fixed inset-0 bg-black/98 z-[5000] p-6 flex items-center justify-center">
-        <div class="w-full max-w-sm glass p-8 rounded-[3rem] border-red-500/30">
-            <h2 id="dir-titolo" class="text-2xl font-black uppercase italic text-white mb-2 text-center">Tavolo</h2>
-            <div class="space-y-6 mt-6">
-                <div class="flex justify-between text-center gap-2">
-                     <div class="bg-slate-900 p-3 rounded-2xl w-1/2"><p class="text-[9px] text-slate-500 font-black uppercase">Ingressi</p><p id="dir-ingressi" class="text-xl font-black text-white">0/0</p></div>
-                     <div class="bg-slate-900 p-3 rounded-2xl w-1/2"><p class="text-[9px] text-yellow-500 font-black uppercase">Servizio</p><p id="dir-orario" class="text-xl font-black text-white">--:--</p></div>
-                </div>
-                <div><p class="text-[9px] text-slate-500 font-black italic mb-3 uppercase">Ordine</p><div id="dir-bottiglie" class="space-y-2 text-sm italic font-bold"></div></div>
-                <div class="pt-4 border-t border-slate-800"><p class="text-[9px] text-slate-500 font-black italic mb-1 uppercase">Note</p><p id="dir-note" class="text-xs text-white italic">Nessuna.</p></div>
-            </div>
-            <button onclick="document.getElementById('modal-direzione-dettagli').classList.add('hidden')" class="w-full mt-8 py-4 bg-white text-black font-black rounded-2xl text-[10px] uppercase italic">Esci</button>
-        </div>
-    </div>
-
-    <div id="modal-mappa" class="hidden fixed inset-0 bg-black z-[4000] flex flex-col"><div class="p-5 flex justify-between bg-slate-950 items-center"><span class="text-yellow-500 font-black text-[10px] uppercase italic">Piantina HD</span><button onclick="toggleMappa(false)" class="bg-white text-black px-4 py-2 rounded-xl text-xs font-black uppercase italic">Esci</button></div><div class="flex-1 img-viewer"><img src="https://i.postimg.cc/8zqmMw4B/Image-6.jpg"></div></div>
     <div id="toast-container"></div>
 
     <script>
-        // --- CONFIGURAZIONE E CONNESSIONE ---
-        const SUPABASE_URL = "https://lktkmilzfcmcxpcqqvqo.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_O-4oxssSub-cwAvyXCyqzQ_5L9NdVZy";
-        const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const bevande = [["Belvedere 0.7L", 150], ["Grey Goose 0.7L", 160], ["Moët & Chandon", 130], ["Dom Pérignon", 450], ["Gin Hendrick's", 140]];
+        const SUPABASE_URL = "https://your-project.supabase.co";
+        const SUPABASE_KEY = "your-anon-key";
+        const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // STATO GLOBALE PREZZI (Default locale)
-        let configLocale = { min_pista: 300, min_prive: 450, min_garden: 200, min_testa: 30 };
-
+        let currentUser = null;
+        let userRole = 'cliente';
+        let serate = [];
         let prenotazioni = [];
-        let selectedTavolo = null;
-        window.currentUser = "Ospite";
-        window.userRole = "guest";
-        let html5QrCode = null;
-        window.currentSerataId = null;
+        let currentSerataId = null;
 
-        // --- AUTH & INIT ---
+        function toggleAuth(mode) {
+            document.getElementById('login-form').classList.toggle('hidden', mode === 'signup');
+            document.getElementById('signup-form').classList.toggle('hidden', mode === 'login');
+        }
+
+        function selectRole(role, btn) {
+            userRole = role;
+            document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('bg-slate-900', 'text-white', 'border-yellow-500'));
+            btn.classList.add('bg-slate-900', 'text-white', 'border-yellow-500');
+        }
+
+        async function handleSignup() {
+            const email = document.getElementById('reg-email').value;
+            const pass = document.getElementById('reg-pass').value;
+            const nome = document.getElementById('reg-nome').value;
+            const cognome = document.getElementById('reg-cognome').value;
+            if (!email || pass.length < 6) return showToast("Dati non validi", "⚠️");
+
+            const { data, error } = await client.auth.signUp({
+                email, password: pass,
+                options: { data: { first_name: nome, last_name: cognome, role: userRole } }
+            });
+
+            if (error) showToast(error.message, "⛔");
+            else { showToast("Benvenuto in Malua 54!", "🎉"); toggleAuth('login'); }
+        }
+
         async function checkLogin() {
             const email = document.getElementById('user-input').value;
             const password = document.getElementById('pass-input').value;
-
             const btn = document.querySelector('button[onclick="checkLogin()"]');
-            const originalText = btn.innerText;
-            btn.innerText = "ACCESSO IN CORSO...";
+            btn.innerText = "ENTRANDO NEL CLUB...";
 
-            const { data, error } = await client.auth.signInWithPassword({
-                email: email,
-                password: password,
-            });
-
-            btn.innerText = originalText;
-
-            if (error) {
-                showToast("Credenziali errate", "⛔");
-                return;
-            }
-
-            const user = data.user;
-            window.currentUser = user.email;
-
-            if (email.includes('security')) {
-                window.userRole = 'security';
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('app-content').classList.remove('hidden');
-                document.getElementById('nav-generale').classList.add('hidden');
-                document.getElementById('nav-security').classList.remove('hidden');
-                switchView('security');
-            } else {
-                if (email === 'boss@nighthub.com') window.userRole = 'boss';
-                else if (email === 'pr@nighthub.com') window.userRole = 'pr';
-                else window.userRole = 'cliente';
-
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('landing-page').classList.remove('hidden');
-                document.getElementById('btn-pr').classList.toggle('hidden', window.userRole !== 'pr');
-                document.getElementById('btn-capo').classList.toggle('hidden', window.userRole !== 'boss');
-
-                await loadConfig();
-                fetchSerate();
-                showToast("Login effettuato!", "🔓");
-            }
+            const { data, error } = await client.auth.signInWithPassword({ email, password });
+            if (error) { showToast("Accesso negato", "⛔"); btn.innerText = "Entra nel Club"; }
+            else { setupApp(data.user); }
         }
 
-        async function loadConfig() {
-            const { data, error } = await client.from('impostazioni').select('*');
-            if(data) {
-                data.forEach(row => {
-                    if(row.chiave === 'min_pista') configLocale.min_pista = row.valore;
-                    if(row.chiave === 'min_prive') configLocale.min_prive = row.valore;
-                    if(row.chiave === 'min_garden') configLocale.min_garden = row.valore;
-                    if(row.chiave === 'min_testa') configLocale.min_testa = row.valore;
-                });
-                document.getElementById('input-min-pista').value = configLocale.min_pista;
-                document.getElementById('input-min-prive').value = configLocale.min_prive;
-                document.getElementById('input-min-garden').value = configLocale.min_garden;
-                document.getElementById('input-min-testa').value = configLocale.min_testa;
-                document.getElementById('label-price-pista').innerText = `Base: €${configLocale.min_pista}`;
-                document.getElementById('label-price-prive').innerText = `Base: €${configLocale.min_prive}`;
-                document.getElementById('label-price-garden').innerText = `Base: €${configLocale.min_garden}`;
-            }
+        function setupApp(user) {
+            currentUser = user.email;
+            userRole = user.user_metadata.role || 'cliente';
+            window.userRole = userRole;
+            window.currentUser = currentUser;
+
+            document.getElementById('auth-layer').classList.add('hidden');
+            document.getElementById('app-shell').classList.remove('hidden');
+            document.getElementById('user-initials').innerText = (user.user_metadata.first_name?.[0] || user.email[0]).toUpperCase();
+            document.getElementById('label-ruolo').innerText = "Member: " + userRole.toUpperCase();
+
+            if (userRole === 'boss') document.getElementById('nav-boss').classList.remove('hidden');
+            if (userRole === 'pr') document.getElementById('nav-pr').classList.remove('hidden');
+
+            fetchSerate();
+            fetchPrenotazioni();
         }
 
-        async function aggiornaListino() {
-            const nPista = parseInt(document.getElementById('input-min-pista').value);
-            const nPrive = parseInt(document.getElementById('input-min-prive').value);
-            const nGarden = parseInt(document.getElementById('input-min-garden').value);
-            const nTesta = parseInt(document.getElementById('input-min-testa').value);
-
-            if (window.currentSerataId) {
-                const { error } = await client.from('serate').update({
-                    min_pista: nPista,
-                    min_prive: nPrive,
-                    min_garden: nGarden,
-                    min_testa: nTesta
-                }).eq('id', window.currentSerataId);
-
-                if (error) showToast("Errore aggiornamento", "⛔");
-                else showToast("Listino Serata Aggiornato!", "💾");
-            } else {
-                await client.from('impostazioni').update({ valore: nPista }).eq('chiave', 'min_pista');
-                await client.from('impostazioni').update({ valore: nPrive }).eq('chiave', 'min_prive');
-                await client.from('impostazioni').update({ valore: nGarden }).eq('chiave', 'min_garden');
-                await client.from('impostazioni').update({ valore: nTesta }).eq('chiave', 'min_testa');
-                showToast("Listino Globale Aggiornato!", "💾");
-            }
-            // No need to reload all config, just update local state
-            configLocale.min_pista = nPista;
-            configLocale.min_prive = nPrive;
-            configLocale.min_garden = nGarden;
-            configLocale.min_testa = nTesta;
-
-            document.getElementById('label-price-pista').innerText = `Base: €${configLocale.min_pista}`;
-            document.getElementById('label-price-prive').innerText = `Base: €${configLocale.min_prive}`;
-            document.getElementById('label-price-garden').innerText = `Base: €${configLocale.min_garden}`;
-        }
+        async function handleLogout() { await client.auth.signOut(); location.reload(); }
 
         async function fetchSerate() {
             const { data, error } = await client.from('serate').select('*').eq('attiva', true).order('data', { ascending: true });
-            if (!error) {
-                renderSerate(data);
-            }
+            if (!error) { serate = data || []; aggiornaListaSerate(); }
         }
 
-        function renderSerate(serate) {
+        function aggiornaListaSerate() {
             const container = document.getElementById('lista-serate');
-            if (!container) return;
             container.innerHTML = "";
-            if (serate.length === 0) {
-                container.innerHTML = '<p class="text-[10px] text-slate-600 text-center py-10 italic uppercase font-black">Nessuna serata in programma.</p>';
-                return;
-            }
             serate.forEach(s => {
                 const img = s.immagine_url || 'https://images.unsplash.com/photo-1574094939582-9357dedc6361?auto=format&fit=crop&w=600&q=80';
                 container.innerHTML += `
-                    <div onclick="entraNelLocale('${s.nome}', ${s.id})" class="relative cursor-pointer overflow-hidden rounded-3xl md:rounded-[2.5rem] border border-yellow-500/40 bg-slate-900 shadow-2xl active:scale-95 transition-transform">
+                    <div onclick="entraNelLocale('${s.nome}', ${s.id})" class="relative cursor-pointer overflow-hidden rounded-[2.5rem] border border-yellow-500/40 bg-slate-900 shadow-2xl active:scale-95 transition-transform">
                         <div class="h-44 bg-cover bg-center opacity-70" style="background-image: url('${img}');"></div>
                         <div class="p-6 absolute bottom-0 left-0 right-0 glass rounded-t-[2rem]">
                             <div class="flex justify-between items-center">
                                 <div><h3 class="font-black text-2xl uppercase italic text-white">${s.nome}</h3><p class="text-[10px] text-yellow-500 font-bold uppercase italic">${s.data}</p></div>
-                                <span class="bg-green-500 text-black text-[9px] font-black px-3 py-1 rounded-full">LIVE</span>
+                                <span class="bg-green-500 text-black text-[9px] font-black px-3 py-1 rounded-full">MALUA 54 LIVE</span>
                             </div>
                         </div>
                     </div>`;
             });
         }
 
+        function entraNelLocale(nome, id) {
+            window.currentSerataId = id;
+            const serata = serate.find(s => s.id === id);
+            document.getElementById('titolo-serata-mappa').innerText = nome;
+            document.getElementById('img-mappa').src = serata.mappa_url || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80';
+            cambiaSezione('mappa');
+        }
+
+        let qty = 5;
+        function updateQty(val) { qty = Math.max(1, qty + val); document.getElementById('qty-persone').innerText = qty; }
+
+        async function confermaPrenotazione() {
+            const tavoloId = document.getElementById('input-tavolo-id').value;
+            const prCode = document.getElementById('pr-input').value.trim().toUpperCase();
+            if (!tavoloId) return showToast("Inserisci tavolo", "⚠️");
+
+            const { error } = await client.from('prenotazioni').insert([{
+                serata_id: window.currentSerataId, cliente: window.currentUser, tavolo_id: tavoloId,
+                persone: qty, prezzo: (qty * 50), pr_ref: prCode || null, status: "Confermato",
+                ingressi_totali: qty, ingressi_usati: 0
+            }]);
+
+            if (error) showToast("Errore", "⛔");
+            else { showToast("Booking Malua 54 OK!", "✨"); cambiaSezione('prenotazioni'); fetchPrenotazioni(); }
+        }
+
+        function cambiaSezione(id) {
+            document.querySelectorAll('.sezione-contenuto').forEach(s => s.classList.remove('active'));
+            document.getElementById('sezione-' + id).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.toggle('text-yellow-500', b.dataset.section === id);
+                b.classList.toggle('text-slate-500', b.dataset.section !== id);
+            });
+            window.scrollTo(0, 0);
+        }
+
         async function creaNuovaSerata() {
             const title = document.getElementById("event-title").value.trim();
             const date = document.getElementById("event-date").value;
-            const desc = document.getElementById("event-desc").value.trim();
-            const fileInput = document.getElementById("event-poster");
+            const filePoster = document.getElementById("event-poster").files[0];
+            const fileMap = document.getElementById("event-map").files[0];
             const btn = document.getElementById("btn-crea-serata");
+            if (!title || !date) return showToast("Dati mancanti", "⚠️");
 
-            if (!title || !date) return showToast("Titolo e Data obbligatori", "⚠️");
+            btn.innerText = "PUBBLICANDO..."; btn.disabled = true;
+            let imageUrl = null, mapUrl = null;
 
-            btn.innerText = "PUBBLICAZIONE IN CORSO...";
-            btn.disabled = true;
-
-            let imageUrl = null;
-            if (fileInput.files.length > 0) {
-                const file = fileInput.files[0];
-                const fileExt = file.name.split(".").pop();
-                const fileName = `${Math.random()}.${fileExt}`;
-                const filePath = `${fileName}`;
-
-                const { data: uploadData, error: uploadError } = await client.storage
-                    .from("posters")
-                    .upload(filePath, file);
-
-                if (uploadError) {
-                    showToast("Errore caricamento immagine", "⛔");
-                    console.error(uploadError);
-                } else {
-                    const { data: urlData } = client.storage.from("posters").getPublicUrl(filePath);
-                    imageUrl = urlData.publicUrl;
-                }
+            if (filePoster) {
+                const name = `${Date.now()}-${filePoster.name}`;
+                await client.storage.from("posters").upload(name, filePoster);
+                imageUrl = client.storage.from("posters").getPublicUrl(name).data.publicUrl;
+            }
+            if (fileMap) {
+                const name = `${Date.now()}-${fileMap.name}`;
+                await client.storage.from("maps").upload(name, fileMap);
+                mapUrl = client.storage.from("maps").getPublicUrl(name).data.publicUrl;
             }
 
-            const { error } = await client.from("serate").insert([{
-                nome: title,
-                data: date,
-                descrizione: desc,
-                immagine_url: imageUrl,
-                attiva: true
-            }]);
-
-            btn.innerText = "🚀 Pubblica Serata";
-            btn.disabled = false;
-
-            if (error) {
-                showToast("Errore creazione serata", "⛔");
-                console.error(error);
-            } else {
-                showToast("Serata Pubblicata!", "✅");
-                document.getElementById("event-title").value = "";
-                document.getElementById("event-date").value = "";
-                document.getElementById("event-desc").value = "";
-                fileInput.value = "";
-                fetchSerate();
-            }
+            const { error } = await client.from("serate").insert([{ nome: title, data: date, immagine_url: imageUrl, mappa_url: mapUrl, attiva: true }]);
+            btn.innerText = "🚀 Pubblica Evento"; btn.disabled = false;
+            if (!error) { showToast("Evento Malua 54 Live!", "✅"); fetchSerate(); }
         }
 
         async function fetchPrenotazioni() {
-            const { data, error } = await client.from('prenotazioni').select('*').eq('serata_id', window.currentSerataId);
-            if (!error) { prenotazioni = data || []; aggiornaInterfacce(); aggiornaClassifica(); aggiornaMappaVisiva(); }
+            const { data, error } = await client.from('prenotazioni').select('*');
+            if (!error) { prenotazioni = data || []; aggiornaInterfacce(); }
         }
-
-        function aggiornaMappaVisiva() {
-            document.querySelectorAll('.tavolo').forEach(el => el.classList.remove('tavolo-prenotato'));
-            prenotazioni.forEach(p => { const el = document.getElementById(`map-tavolo-${p.tavolo_id}`); if (el) el.classList.add('tavolo-prenotato'); });
-        }
-
-        // --- GESTIONE TEAM PR ---
-        function apriGestionePR() {
-            document.getElementById('modal-gestione-pr').classList.remove('hidden');
-            caricaTeamPR();
-        }
-
-        async function caricaTeamPR() {
-            const list = document.getElementById('lista-team-pr');
-            list.innerHTML = '<div class="spinner"></div>';
-            const { data, error } = await client.from('team_pr').select('*').order('creato_il', { ascending: false });
-            list.innerHTML = "";
-            if (data && data.length > 0) {
-                data.forEach(pr => {
-                    list.innerHTML += `<div class="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800"><div><p class="text-white text-xs font-black uppercase">${pr.nome}</p><p class="text-slate-500 text-[10px] font-mono">Codice: <span class="text-blue-400">${pr.codice}</span></p></div><button onclick="rimuoviPR(${pr.id})" class="text-red-500 p-2 hover:bg-red-500/10 rounded-full transition-colors">🗑️</button></div>`;
-                });
-            } else { list.innerHTML = '<p class="text-slate-600 text-center text-xs italic">Nessun PR nel team.</p>'; }
-        }
-
-        async function aggiungiPR() {
-            const nome = document.getElementById('new-pr-name').value.trim();
-            const codice = document.getElementById('new-pr-code').value.trim();
-            if (!nome || !codice) return showToast("Compila tutti i campi", "⚠️");
-            const { error } = await client.from('team_pr').insert([{ nome, codice }]);
-            if (error) { showToast("Errore: " + error.message, "⛔"); } else { showToast("PR Aggiunto!", "✅"); document.getElementById('new-pr-name').value = ""; document.getElementById('new-pr-code').value = ""; caricaTeamPR(); }
-        }
-
-        async function rimuoviPR(id) {
-            if(!confirm("Vuoi licenziare questo PR?")) return;
-            const { error } = await client.from('team_pr').delete().eq('id', id);
-            if (!error) { showToast("PR Rimosso", "🗑️"); caricaTeamPR(); }
-        }
-
-        // --- CORE: MOTORE PRENOTAZIONE ---
-        function selectTavolo(id, typeKey, zona) {
-            if(document.getElementById(`map-tavolo-${id}`).classList.contains('tavolo-prenotato')) return showToast("Tavolo Occupato", "🔒");
-            if(prenotazioni.some(p => p.tavolo_id == id)) return showToast("Tavolo Già Prenotato", "🚫");
-
-            const realBasePrice = configLocale[typeKey];
-            const realMinHead = configLocale.min_testa;
-
-            selectedTavolo = {
-                tavolo_id: id,
-                min_table: realBasePrice,
-                zona,
-                persone: 5,
-                budget_head: realMinHead,
-                totale: realBasePrice
-            };
-
-            document.getElementById('slider-persone').value = 5;
-            document.getElementById('slider-budget').min = realMinHead;
-            document.getElementById('slider-budget').value = realMinHead;
-
-            document.getElementById('modal-pagamento').classList.remove('hidden');
-            document.getElementById('pay-step-calc').classList.remove('hidden');
-            document.getElementById('pay-step-checkout').classList.add('hidden');
-            document.getElementById('pay-step-loading').classList.add('hidden');
-
-            updatePriceCalculation();
-        }
-
-        function updatePriceCalculation() {
-            const persone = parseInt(document.getElementById('slider-persone').value);
-            const budgetHead = parseInt(document.getElementById('slider-budget').value);
-
-            document.getElementById('warn-persone').classList.toggle('hidden', persone <= 20);
-
-            const calcTotal = persone * budgetHead;
-            const finalPrice = Math.max(selectedTavolo.min_table, calcTotal);
-
-            document.getElementById('label-persone').innerText = persone;
-            document.getElementById('label-budget').innerText = "€ " + budgetHead;
-            document.getElementById('calc-total').innerText = "€ " + finalPrice;
-
-            const note = document.getElementById('calc-note');
-            if (calcTotal < selectedTavolo.min_table) {
-                note.innerText = `⚠️ Applicato Minimale Tavolo (€${selectedTavolo.min_table})`;
-                note.classList.replace('text-green-500', 'text-yellow-500');
-            } else {
-                note.innerText = `✅ Budget Bottiglie: €${finalPrice}`;
-                note.classList.replace('text-yellow-500', 'text-green-500');
-            }
-            selectedTavolo.persone = persone;
-            selectedTavolo.totale = finalPrice;
-        }
-
-        function goToCheckout() { document.getElementById('pay-step-calc').classList.add('hidden'); document.getElementById('pay-step-checkout').classList.remove('hidden'); }
-        function backToCalc() { document.getElementById('pay-step-checkout').classList.add('hidden'); document.getElementById('pay-step-calc').classList.remove('hidden'); }
-
-        async function processaPagamentoReale() {
-            let prCode = document.getElementById('pr-input').value.trim();
-            let note = "";
-
-            if (prCode.length > 0) {
-                const { data: prData } = await client.from('team_pr').select('codice').eq('codice', prCode).single();
-                if (!prData) {
-                    if(!confirm(`⚠️ ATTENZIONE: Il codice "${prCode}" non esiste.\n\nVuoi procedere senza codice PR?`)) {
-                        return;
-                    }
-                    prCode = "";
-                } else {
-                    note = "🎁 PR: " + prCode;
-                }
-            }
-
-            document.getElementById('pay-step-checkout').classList.add('hidden');
-            document.getElementById('pay-step-loading').classList.remove('hidden');
-
-            try {
-                const { data: checkTable } = await client.from('prenotazioni').select('id').eq('tavolo_id', selectedTavolo.tavolo_id).eq('serata_id', window.currentSerataId).maybeSingle();
-
-                if (checkTable) {
-                    throw new Error("Tavolo appena occupato da un altro cliente!");
-                }
-
-                const { error } = await client.from('prenotazioni').insert([{
-                    serata_id: window.currentSerataId,
-                    tavolo_id: selectedTavolo.tavolo_id,
-                    zona: selectedTavolo.zona,
-                    prezzo: selectedTavolo.totale,
-                    cliente: document.getElementById("customer-name").value || window.currentUser,
-                    status: "Pagato",
-                    pr_ref: prCode,
-                    note: note,
-                    bottiglie: [],
-                    ingressi_totali: selectedTavolo.persone,
-                    ingressi_usati: 0
-                }]);
-
-                if(error) throw error;
-
-                await fetchPrenotazioni();
-                document.getElementById('modal-pagamento').classList.add('hidden');
-                const newP = prenotazioni.find(p => p.tavolo_id === selectedTavolo.tavolo_id);
-                if(newP) { selectedTavolo = newP; mostraPassDigitale(); }
-
-            } catch (err) {
-                alert("ERRORE: " + err.message);
-                document.getElementById('pay-step-loading').classList.add('hidden');
-                document.getElementById('pay-step-checkout').classList.remove('hidden');
-            }
-        }
-
-        function dividiConAmici() {
-            if(navigator.share) {
-                navigator.share({ title: 'TableKey Pay', text: `Ciao! Ecco la mia quota per il tavolo ${selectedTavolo.tavolo_id}.`, url: 'https://tablekey.it/pay' }).then(() => { showToast("Link inviato!", "🚀"); processaPagamentoReale(); }).catch(console.error);
-            } else { showToast("Link copiato! Invialo su WhatsApp.", "🔗"); processaPagamentoReale(); }
-        }
-
-        function chiudiModalePagamento() {
-            document.getElementById('modal-pagamento').classList.add('hidden');
-            document.getElementById('pay-step-calc').classList.remove('hidden');
-            document.getElementById('pay-step-checkout').classList.add('hidden');
-            document.getElementById('pay-step-loading').classList.add('hidden');
-        }
-
-        // --- GESTIONE PASS & SECURITY ---
-        function mostraPassDigitale() {
-            document.getElementById('modal-pass').classList.remove('hidden');
-            document.getElementById('pass-details').innerHTML = `<p class="text-white font-black text-xl uppercase">Tavolo ${selectedTavolo.tavolo_id}</p><p class="text-yellow-500 text-sm font-black italic mt-2">${selectedTavolo.cliente}</p>`;
-            const rimasti = selectedTavolo.ingressi_totali - (selectedTavolo.ingressi_usati || 0);
-            document.getElementById('pass-counter').innerHTML = `<div class="flex justify-between items-center"><div><p class="text-[9px] uppercase text-slate-400 font-bold">Ingressi Totali</p><p class="text-white font-black text-lg">${selectedTavolo.ingressi_usati || 0} / ${selectedTavolo.ingressi_totali}</p></div><div class="text-right"><p class="text-[9px] uppercase text-green-400 font-bold">Disponibili</p><p class="text-green-500 font-black text-2xl">${rimasti}</p></div></div>`;
-            let qrData = `TABLEKEY-T${selectedTavolo.tavolo_id}-${selectedTavolo.cliente}`;
-            document.getElementById('qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrData)}`;
-        }
-        function recuperaPass(idx) { selectedTavolo = prenotazioni[idx]; mostraPassDigitale(); }
-        function chiudiPass() { document.getElementById('modal-pass').classList.add('hidden'); switchView('prenotazioni'); }
-
-        async function aggiungiOspite(idx) {
-            const cost = configLocale.min_testa;
-            if(!confirm(`Vuoi aggiungere 1 ospite al tavolo? \nCosto: €${cost}`)) return;
-            const p = prenotazioni[idx];
-            showToast("Pagamento in corso...", "💳");
-            setTimeout(async () => {
-                const { error } = await client.from('prenotazioni').update({ ingressi_totali: p.ingressi_totali + 1, prezzo: p.prezzo + cost }).eq('id', p.id);
-                if(!error) { showToast("Ospite Aggiunto!", "✅"); fetchPrenotazioni(); } else { showToast("Errore", "⚠️"); }
-            }, 1000);
-        }
-
-        // --- SCANNER ROBUSTO ---
-        function startScanner() {
-            if(html5QrCode) return;
-            document.getElementById('modal-scanner').classList.remove('hidden');
-            html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-                .catch(err => { alert("ERRORE CAMERA: " + err); stopScanner(); });
-        }
-        function onScanSuccess(decodedText) { stopScanner(); document.getElementById('security-scan-input').value = decodedText; checkIn(); }
-        function stopScanner() { if(html5QrCode) { html5QrCode.stop().then(() => { html5QrCode.clear(); html5QrCode = null; document.getElementById('modal-scanner').classList.add('hidden'); }).catch(err => console.log(err)); } else { document.getElementById('modal-scanner').classList.add('hidden'); } }
-
-        async function checkIn() {
-            const input = document.getElementById('security-scan-input').value.toUpperCase();
-            const resDiv = document.getElementById('security-result');
-            resDiv.classList.remove('hidden', 'status-ok', 'status-ko', 'border-green-500', 'border-red-500');
-
-            if(!input.startsWith("TABLEKEY-T")) { showToast("Codice non valido", "⚠️"); return; }
-            const tID = input.split("-")[1].replace("T", "");
-
-            const { data, error } = await client.from('prenotazioni').select('*').eq('tavolo_id', tID).eq('serata_id', window.currentSerataId).single();
-            if(error || !data) {
-                resDiv.classList.add('status-ko', 'border-red-500');
-                resDiv.innerHTML = `<h2 class="text-3xl font-black mb-2">⛔ NON TROVATO</h2><p>Tavolo ${tID}</p>`;
-                return;
-            }
-            const usati = data.ingressi_usati || 0;
-            const totali = data.ingressi_totali || 1;
-
-            if (usati >= totali) {
-                resDiv.classList.add('status-ko', 'border-red-500');
-                resDiv.innerHTML = `<h2 class="text-3xl font-black mb-2">⛔ COMPLETO</h2><p class="text-xl font-bold">${usati} / ${totali} Entrati</p><p class="text-xs mt-2">Acquistare extra in app</p>`;
-                if(navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100]);
-            } else {
-                const nuovoUsati = usati + 1;
-                await client.from('prenotazioni').update({ ingressi_usati: nuovoUsati, status: 'Entrato' }).eq('id', data.id);
-                resDiv.classList.add('status-ok', 'border-green-500');
-                resDiv.innerHTML = `<h2 class="text-4xl font-black mb-1">✅ ENTRA</h2><p class="text-xl font-bold uppercase">${data.cliente}</p><div class="mt-4 bg-black/20 p-3 rounded-xl"><p class="text-xs font-black uppercase mb-1">Conteggio Gruppo</p><p class="text-3xl font-black">${nuovoUsati} <span class="text-sm">su</span> ${totali}</p></div>`;
-                if(navigator.vibrate) navigator.vibrate([50, 50]);
-            }
-        }
-
-        async function resetTotale() {
-            if(!confirm("Sicuro di voler CANCELLARE TUTTE le prenotazioni di questa serata?")) return;
-            const { error } = await client.from('prenotazioni').delete().eq('serata_id', window.currentSerataId);
-            if(error) { alert("Errore cancellazione: " + error.message); }
-            else { alert("Database Svuotato!"); fetchPrenotazioni(); }
-        }
-
-        // --- UTILS & UI UPDATE ---
-        function logout() { location.reload(); }
-        async function entraNelLocale(n, id) {
-            window.currentSerataId = id;
-            document.getElementById('landing-page').classList.add('hidden');
-            document.getElementById('app-content').classList.remove('hidden');
-            document.getElementById('titolo-locale').innerText = n;
-
-            // Fetch serata details for prices
-            const { data: serata, error } = await client.from('serate').select('*').eq('id', id).single();
-            if (serata) {
-                configLocale.min_pista = serata.min_pista || configLocale.min_pista;
-                configLocale.min_prive = serata.min_prive || configLocale.min_prive;
-                configLocale.min_garden = serata.min_garden || configLocale.min_garden;
-                configLocale.min_testa = serata.min_testa || configLocale.min_testa;
-
-                // Update UI labels
-                document.getElementById('label-price-pista').innerText = `Base: €${configLocale.min_pista}`;
-                document.getElementById('label-price-prive').innerText = `Base: €${configLocale.min_prive}`;
-                document.getElementById('label-price-garden').innerText = `Base: €${configLocale.min_garden}`;
-
-                // Update Boss inputs if user is boss
-                if (window.userRole === 'boss') {
-                    document.getElementById('input-min-pista').value = configLocale.min_pista;
-                    document.getElementById('input-min-prive').value = configLocale.min_prive;
-                    document.getElementById('input-min-garden').value = configLocale.min_garden;
-                    document.getElementById('input-min-testa').value = configLocale.min_testa;
-                }
-            }
-
-            fetchPrenotazioni();
-        }
-        function tornaAllaHome() { document.getElementById('landing-page').classList.remove('hidden'); document.getElementById('app-content').classList.add('hidden'); fetchSerate(); }
-        function toggleMappa(s) { document.getElementById('modal-mappa').classList.toggle('hidden', !s); }
-        function switchView(m) {
-            if(navigator.vibrate) navigator.vibrate(10);
-            document.querySelectorAll('.tab-active').forEach(e => e.classList.remove('tab-active'));
-            document.querySelectorAll('.sezione-contenuto').forEach(e => e.classList.remove('active'));
-            if(m === 'security') document.getElementById('sezione-security').classList.add('active');
-            else {
-                document.getElementById('btn-' + m).classList.add('tab-active');
-                document.getElementById('sezione-' + m).classList.add('active');
-                fetchPrenotazioni();
-            }
-        }
-        function checkPromo(input) { document.getElementById('pr-input').classList.toggle('border-green-500', input.value.length > 0); }
-        function showToast(message, icon = "✅") { const c = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = 'toast'; t.innerHTML = `<span><span class="toast-icon">${icon}</span>${message}</span>`; c.appendChild(t); setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(20px)'; setTimeout(() => t.remove(), 300); }, 3000); }
 
         function aggiornaInterfacce() {
             const container = document.getElementById('lista-prenotazioni-attive'); container.innerHTML = "";
             const registroDir = document.getElementById('registro-direzione'); registroDir.innerHTML = "";
             const registroPR = document.getElementById('lista-vendite-pr'); registroPR.innerHTML = "";
-            let wallet = 0; const COMM = 0.10; let myTablesCount = 0;
+            let wallet = 0;
 
             prenotazioni.forEach((p, i) => {
-                let showInMyTables = (window.userRole === 'cliente' && p.cliente === window.currentUser) || (window.userRole === 'pr' && p.pr_ref === window.currentUser);
-
-                if (showInMyTables) {
-                    myTablesCount++;
-                    if (window.userRole === 'cliente') {
-                         container.innerHTML += `<div class="glass p-6 rounded-[2rem] border-yellow-500/30 mb-4"><div class="flex justify-between items-start mb-4"><div><p class="text-[10px] font-black text-yellow-500 uppercase italic">Stato: ${p.status}</p><h3 class="text-xl font-black text-white italic">Tavolo ${p.tavolo_id}</h3><p class="text-[10px] text-slate-400 font-bold mt-1">👥 ${p.ingressi_usati||0} / ${p.ingressi_totali} Entrati</p></div><div class="flex flex-col gap-2"><button onclick="recuperaPass(${i})" class="bg-slate-800 text-white border border-yellow-500/50 px-3 py-2 rounded-xl font-black text-[9px] uppercase italic">🎫 QR CODE</button><button onclick="aggiungiOspite(${i})" class="bg-green-600 text-white px-3 py-2 rounded-xl font-black text-[9px] uppercase italic shadow-lg flex items-center gap-1 justify-center">+ 👤 ADD</button></div></div><button onclick="apriConfig(${i})" class="w-full ${p.status === "Inviato" ? "bg-green-500 text-black" : "bg-yellow-500 text-black"} text-[9px] font-black px-4 py-3 rounded-xl uppercase italic shadow-lg">${p.status === "Inviato" ? "Ordine Inviato ✓" : "Ordina Bottiglie"}</button></div>`;
-                    } else if (window.userRole === 'pr') {
-                        let myComm = (p.prezzo * COMM).toFixed(2);
-                        container.innerHTML += `
-                        <div class="glass p-6 rounded-[2rem] border-blue-500/30 mb-4 relative overflow-hidden">
-                            <div class="absolute top-0 right-0 bg-blue-600 px-3 py-1 rounded-bl-xl"><p class="text-[9px] font-black text-white uppercase">PR VIEW</p></div>
-                            <h3 class="text-xl font-black text-white italic mb-1">Tavolo ${p.tavolo_id}</h3>
-                            <p class="text-[10px] text-slate-400 font-bold mb-4 uppercase">Cliente: <span class="text-white">${p.cliente}</span></p>
-                            <div class="grid grid-cols-2 gap-2 mb-2">
-                                <div class="bg-slate-900/50 p-3 rounded-xl"><p class="text-[9px] text-slate-500 uppercase font-black">Totale</p><p class="text-sm font-black text-white">€ ${p.prezzo}</p></div>
-                                <div class="bg-blue-900/20 p-3 rounded-xl border border-blue-500/30"><p class="text-[9px] text-blue-400 uppercase font-black">Tua %</p><p class="text-sm font-black text-blue-500">€ ${myComm}</p></div>
-                            </div>
-                            <div class="flex justify-between items-center mt-2">
-                                <span class="text-[10px] uppercase font-black text-slate-500">Stato: <span class="text-white">${p.status}</span></span>
-                                <span class="text-[10px] uppercase font-black text-slate-500">Ingressi: <span class="text-white">${p.ingressi_usati||0}/${p.ingressi_totali}</span></span>
-                            </div>
-                        </div>`;
-                    }
+                const isMine = (window.userRole === 'cliente' && p.cliente === window.currentUser) || (window.userRole === 'pr' && p.pr_ref === window.currentUser);
+                if (isMine) {
+                    container.innerHTML += `<div class="glass p-6 rounded-[2rem] border-yellow-500/30 mb-4">
+                        <div class="flex justify-between items-start">
+                            <div><p class="text-[10px] font-black text-yellow-500 uppercase">Tavolo ${p.tavolo_id}</p><h3 class="text-xl font-black text-white italic">Booking Malua 54</h3></div>
+                            <button onclick="recuperaPass(${i})" class="bg-slate-800 text-white px-4 py-2 rounded-xl font-black text-[9px] uppercase">🎫 PASS</button>
+                        </div>
+                    </div>`;
+                    if (window.userRole === 'pr') wallet += (p.prezzo * 0.10);
                 }
-
-                let prLabel = p.pr_ref ? `<span class="text-yellow-500 text-[9px]"> (PR: ${p.pr_ref})</span>` : "";
-                registroDir.innerHTML += `<div onclick="apriDettagliDirezione(${i})" class="flex justify-between items-center p-4 bg-slate-950 rounded-2xl border border-slate-800 cursor-pointer active:scale-95 transition-transform"><div><p class="text-white text-[11px] font-black uppercase italic">${p.cliente}${prLabel}</p><p class="text-[9px] text-slate-500 uppercase font-black">T${p.tavolo_id} • 👥 ${p.ingressi_usati||0}/${p.ingressi_totali}</p></div><span class="text-green-500 font-black text-[11px] italic">€ ${p.prezzo}</span></div>`;
-                if (window.userRole === 'pr' && p.pr_ref === window.currentUser) { let prov = p.prezzo * COMM; wallet += prov; registroPR.innerHTML += `<div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 flex justify-between items-center"><div><p class="text-[11px] font-black text-white italic uppercase">${p.cliente}</p><p class="text-[9px] text-slate-500 font-bold uppercase">T${p.tavolo_id}</p></div><p class="text-sm font-black text-white italic">€ ${prov.toFixed(2)}</p></div>`; }
+                registroDir.innerHTML += `<div class="p-4 bg-slate-900 rounded-2xl border border-slate-800 text-[10px] font-black uppercase italic">${p.cliente} • T${p.tavolo_id} • Malua 54</div>`;
             });
-            if (myTablesCount === 0) container.innerHTML = '<p class="text-[10px] text-slate-600 text-center py-20 italic font-black uppercase">Nessun tavolo.</p>';
             document.getElementById('pr-wallet-total').innerText = "€ " + wallet.toFixed(2);
         }
-        function apriConfig(idx) { selectedTavolo = prenotazioni[idx]; document.getElementById('modal-config').classList.remove('hidden'); document.getElementById('conf-nome').innerText = "Tavolo " + selectedTavolo.tavolo_id; selectedTavolo.budget_calc = selectedTavolo.prezzo; document.getElementById('conf-budget').innerText = "€ " + selectedTavolo.budget_calc; const list = document.getElementById('conf-lista-bottiglie'); list.innerHTML = ""; bevande.forEach(b => { list.innerHTML += `<div class="bg-slate-900/50 p-5 rounded-3xl flex justify-between items-center border border-slate-800"><div><p class="font-black text-sm uppercase text-white italic">${b[0]}</p><p class="text-xs text-yellow-500 font-bold">€ ${b[1]}</p></div><button onclick="ordina('${b[0]}', ${b[1]})" class="bg-white text-black px-5 py-2 rounded-xl font-black text-[9px] uppercase italic active:scale-95 transition-transform">Aggiungi</button></div>`; }); }
-        function ordina(n, p) { if(selectedTavolo.budget_calc >= p) { selectedTavolo.budget_calc -= p; if(!selectedTavolo.bottiglie) selectedTavolo.bottiglie = []; selectedTavolo.bottiglie.push(n); document.getElementById('conf-budget').innerText = "€ " + selectedTavolo.budget_calc; } else { showToast("Budget esaurito!", "⚠️"); } }
-        async function inviaOrdineFinale() { if(!selectedTavolo.orario) return showToast("Seleziona orario!", "⏰"); selectedTavolo.note = document.getElementById('note-ordine').value; const { error } = await client.from('prenotazioni').update({ status: "Inviato", orario: selectedTavolo.orario, note: selectedTavolo.note, bottiglie: selectedTavolo.bottiglie }).eq('id', selectedTavolo.id); if(!error) { showToast("Ordine Inviato!", "🚀"); document.getElementById('modal-config').classList.add('hidden'); fetchPrenotazioni(); } }
-        function apriDettagliDirezione(idx) { const p = prenotazioni[idx]; document.getElementById('modal-direzione-dettagli').classList.remove('hidden'); document.getElementById('dir-titolo').innerText = "Tavolo " + p.tavolo_id; document.getElementById('dir-orario').innerText = p.orario || "--:--"; document.getElementById('dir-ingressi').innerText = `${p.ingressi_usati||0} / ${p.ingressi_totali}`; document.getElementById('dir-note').innerText = p.note || "Nessuna."; const list = document.getElementById('dir-bottiglie'); list.innerHTML = (p.bottiglie && p.bottiglie.length > 0) ? p.bottiglie.map(b => `<p>• ${b}</p>`).join('') : "<p class='text-slate-600'>Nessun ordine.</p>"; }
-        function setOrario(t, b) { selectedTavolo.orario = t; document.querySelectorAll('.orario-btn').forEach(btn => { btn.classList.replace('bg-yellow-500', 'bg-slate-800'); btn.classList.replace('text-black', 'text-slate-400'); }); b.classList.replace('bg-slate-800', 'bg-yellow-500'); b.classList.replace('text-slate-400', 'text-black'); }
-        function richiediAccredito() { window.open(`https://wa.me/393331234567?text=Saldo: ${document.getElementById('pr-wallet-total').innerText}`, '_blank'); }
-        function copiaLink() { navigator.clipboard.writeText("malua54.it/ref/" + window.currentUser); showToast("Link Copiato!", "🔗"); }
-        function aggiornaClassifica() { let stats = {}; const COMM = 0.10; prenotazioni.forEach(p => { let name = (p.pr_ref || "").trim().toUpperCase(); if(name) { if(!stats[name]) stats[name] = 0; stats[name] += (p.prezzo * COMM); } }); let sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]); const div = document.getElementById('classifica-live'); div.innerHTML = ""; if(sorted.length === 0) { div.innerHTML = '<p class="text-[9px] text-slate-600 text-center py-4 italic">In attesa di dati...</p>'; return; } sorted.forEach((item, index) => { let rank = index + 1; let color = rank === 1 ? 'text-yellow-400' : 'text-white'; let icon = rank === 1 ? '👑 ' : `${rank}. `; div.innerHTML += `<div class="flex justify-between items-center p-4 bg-slate-950 rounded-2xl border border-yellow-500/20"><span class="text-xs font-black italic ${color}">${icon}${item[0]}</span><span class="text-xs font-black text-yellow-500 italic">€ ${item[1].toFixed(2)}</span></div>`; }); }
-        function apriCreaPR() { document.getElementById('modal-crea-pr').classList.remove('hidden'); }
 
+        function recuperaPass(idx) {
+            const p = prenotazioni[idx];
+            document.getElementById('modal-pass').classList.remove('hidden');
+            document.getElementById('pass-cliente').innerText = p.cliente.split('@')[0].toUpperCase();
+            document.getElementById('pass-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=MALUA54_PASS_${p.id}`;
+            document.getElementById('pass-counter').innerHTML = `<p class="text-white font-black text-lg">Ingressi: ${p.ingressi_usati || 0} / ${p.ingressi_totali}</p>`;
+        }
+
+        function showToast(message, icon = "✅") {
+            const c = document.getElementById('toast-container');
+            const t = document.createElement('div'); t.className = 'toast';
+            t.innerHTML = `<span>${icon} ${message}</span>`;
+            c.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        function checkPromo(input) { document.getElementById('pr-input').classList.toggle('border-green-500', input.value.length > 0); }
+        function copiaLink() { navigator.clipboard.writeText("malua54.it/ref/" + window.currentUser); showToast("Link Copiato!", "🔗"); }
+        function richiediAccredito() { window.open(`https://wa.me/393331234567?text=Saldo: ${document.getElementById('pr-wallet-total').innerText}`, '_blank'); }
     </script>
 </body>
 </html>
