@@ -402,7 +402,7 @@
         </div>
     </div>
 
-    <div id="modal-mappa" class="hidden fixed inset-0 bg-black z-[4000] flex flex-col"><div class="p-5 flex justify-between bg-slate-950 items-center"><span class="text-yellow-500 font-black text-[10px] uppercase italic">Piantina Malua 54</span><button onclick="toggleMappa(false)" class="bg-white text-black px-4 py-2 rounded-xl text-xs font-black uppercase italic">Esci</button></div><div class="flex-1 img-viewer overflow-auto flex items-center justify-center p-4"><img id="mappa-img-viewer" src="https://i.postimg.cc/8zqmMw4B/Image-6.jpg" class="max-w-full max-h-full object-contain"></div></div>
+    <div id="modal-mappa" class="hidden fixed inset-0 bg-black z-[4000] flex flex-col"><div class="p-5 flex justify-between bg-slate-950 items-center"><span class="text-yellow-500 font-black text-[10px] uppercase italic">Piantina Serata</span><button onclick="toggleMappa(false)" class="bg-white text-black px-4 py-2 rounded-xl text-xs font-black uppercase italic">Esci</button></div><div class="flex-1 img-viewer overflow-auto flex items-center justify-center p-4"><img id="mappa-img-viewer" src="" class="max-w-full max-h-full object-contain"></div></div>
     <div id="toast-container"></div>
 
     <script>
@@ -553,11 +553,42 @@
             document.getElementById('label-price-garden').innerText = `Base: €${configLocale.min_garden}`;
         }
 
+        
+        
+        async function eliminaSerata(id) {
+            if(!confirm("Sei sicuro di voler eliminare questa serata?")) return;
+            const { error } = await client.from('serate').delete().eq('id', id);
+            if (error) {
+                showToast("Errore eliminazione", "⛔");
+                console.error(error);
+            } else {
+                showToast("Serata eliminata!", "🗑️");
+                fetchSerate();
+            }
+        }
+
+        function renderSerateBoss(data) {
+            const container = document.getElementById('boss-lista-serate');
+            if(!container) return;
+            container.innerHTML = "";
+            data.forEach(s => {
+                container.innerHTML += `
+                    <div class="flex justify-between items-center p-4 bg-slate-900 rounded-2xl border border-slate-800">
+                        <div>
+                            <p class="text-white text-xs font-black uppercase">${s.nome}</p>
+                            <p class="text-[9px] text-slate-500 font-bold">${s.data}</p>
+                        </div>
+                        <button onclick="eliminaSerata(${s.id})" class="bg-red-600 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase shadow-lg active:scale-95 transition-transform">🗑️ Elimina</button>
+                    </div>
+                `;
+            });
+        }
+
         async function fetchSerate() {
             const { data, error } = await client.from('serate').select('*').eq('attiva', true).order('data', { ascending: true });
             if (!error) {
                 serate = data || [];
-                renderSerate(serate);
+                renderSerate(serate); renderSerateBoss(serate);
             }
         }
 
@@ -577,7 +608,7 @@
                         <div class="p-6 absolute bottom-0 left-0 right-0 glass rounded-t-[2rem]">
                             <div class="flex justify-between items-center">
                                 <div><h3 class="font-black text-2xl uppercase italic text-white">${s.nome}</h3><p class="text-[10px] text-yellow-500 font-bold uppercase italic">${s.data}</p></div>
-                                <span class="bg-green-500 text-black text-[9px] font-black px-3 py-1 rounded-full">LIVE</span>
+                                <span class="bg-green-500 text-black text-[9px] font-black px-3 py-1 rounded-full">LIVE</span><button onclick="event.stopPropagation(); if(confirm(\'Vuoi eliminare questa serata?\')) eliminaSerata(${s.id})" class="${window.userRole === \'boss\' ? \'\' : \'hidden\'} ml-2 bg-red-600 text-white p-2 rounded-lg text-[9px] font-black uppercase shadow-lg">🗑️ Elimina</button></span>
                             </div>
                         </div>
                     </div>`;
@@ -764,26 +795,29 @@
             document.getElementById('pay-step-checkout').classList.add('hidden');
             document.getElementById('pay-step-loading').classList.remove('hidden');
 
+            
+            
             try {
+                console.log("LOG: Avvio prenotazione...", { 
+                    serata: window.currentSerataId, 
+                    tavolo: selectedTavolo, 
+                    cliente: window.currentUser 
+                });
+
+                if(!selectedTavolo) {
+                    showToast("Seleziona prima un tavolo sulla mappa", "⚠️");
+                    document.getElementById('modal-pagamento').classList.add('hidden');
+                    return;
+                }
+
                 const { data: checkTable } = await client.from('prenotazioni').select('id').eq('tavolo_id', selectedTavolo.tavolo_id).eq('serata_id', window.currentSerataId).maybeSingle();
                 
                 if (checkTable) {
                     throw new Error("Tavolo appena occupato da un altro cliente!");
                 }
 
-                const { error } = await client.from('prenotazioni').insert([{
-                    serata_id: window.currentSerataId,
-                    tavolo_id: selectedTavolo.tavolo_id,
-                    zona: selectedTavolo.zona,
-                    prezzo: selectedTavolo.totale,
-                    cliente: document.getElementById("customer-name").value || window.currentUser,
-                    status: "Pagato",
-                    pr_ref: prCode,
-                    note: note,
-                    bottiglie: [],
-                    ingressi_totali: selectedTavolo.persone,
-                    ingressi_usati: 0
-                }]);
+                const { error } = await client.from(\'prenotazioni\').insert([{ serata_id: window.currentSerataId, tavolo_id: selectedTavolo.tavolo_id, zona: selectedTavolo.zona, prezzo: selectedTavolo.totale, cliente: document.getElementById("customer-name").value || window.currentUser, status: "Pagato", note: note, bottiglie: [], ingressi_totali: selectedTavolo.persone, ingressi_usati: 0 }]); if(error) console.error("SUPABASE INSERT ERROR:", error);
+                if(error) { console.error("SUPABASE ERROR:", error); throw error; }
 
                 if(error) throw error;
 
@@ -916,7 +950,23 @@
             fetchPrenotazioni(); 
         }
         function tornaAllaHome() { document.getElementById('landing-page').classList.remove('hidden'); document.getElementById('app-content').classList.add('hidden'); fetchSerate(); }
-        function toggleMappa(s) { document.getElementById('modal-mappa').classList.toggle('hidden', !s); }
+        function toggleMappa(s) { 
+            if(s) {
+                const serata = serate.find(x => x.id === window.currentSerataId);
+                const imgViewer = document.getElementById('mappa-img-viewer');
+                if(serata && serata.mappa_url) {
+                    imgViewer.src = serata.mappa_url;
+                } else {
+                    imgViewer.src = "https://i.postimg.cc/8zqmMw4B/Image-6.jpg";
+                }
+            }
+            document.getElementById('modal-mappa').classList.toggle('hidden', !s); 
+        } else {
+                    imgViewer.src = "https://i.postimg.cc/8zqmMw4B/Image-6.jpg";
+                }
+            }
+            document.getElementById('modal-mappa').classList.toggle('hidden', !s); 
+        }
         function switchView(m) { 
             if(navigator.vibrate) navigator.vibrate(10); 
             document.querySelectorAll('.tab-active').forEach(e => e.classList.remove('tab-active')); 
