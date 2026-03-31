@@ -16,7 +16,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">
     <title>TableKey</title>
-
+    
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -26,23 +26,23 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #020617; overscroll-behavior-y: none; }
-
+        
         /* UI Basics */
         .tavolo { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; user-select: none; }
         .tavolo:active { transform: scale(0.95); }
         /* TAVOLO PRENOTATO: Più scuro e NON cliccabile */
         .tavolo-prenotato { background-color: #1e293b !important; border-color: #334155 !important; color: #475569 !important; cursor: not-allowed !important; opacity: 0.5; pointer-events: none; }
-
+        
         .tab-active { background-color: #eab308 !important; color: #000 !important; font-weight: 900; box-shadow: 0 4px 15px rgba(234, 179, 8, 0.3); }
         .sezione-contenuto { display: none; }
         .sezione-contenuto.active { display: block; animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
         .glass { background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border: 1px solid rgba(255, 255, 255, 0.125); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5); }
-
+        
         /* Scanner Video */
         #reader { width: 100%; height: 100%; background: black; }
         #reader video { object-fit: cover; width: 100% !important; height: 100% !important; }
@@ -55,7 +55,7 @@
         /* Security Colors */
         .status-ok { background-color: #22c55e; color: black; }
         .status-ko { background-color: #ef4444; color: white; }
-
+        
         /* Toast */
         #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: 90%; max-width: 400px; }
         .toast { background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(234, 179, 8, 0.3); color: white; padding: 16px; rounded-2xl; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; animation: slideUp 0.3s ease-out; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(10px); }
@@ -72,7 +72,7 @@
         ::-webkit-scrollbar-thumb:hover { background: rgba(234, 179, 8, 0.4); }
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
+    
         body {
             background: #020617;
             position: relative;
@@ -149,7 +149,7 @@
             <div id="sezione-cliente" class="sezione-contenuto active space-y-8">
                 <button onclick="toggleMappa(true)" class="w-full py-5 bg-gradient-to-r from-yellow-600 to-yellow-500 rounded-2xl text-black text-[10px] font-black uppercase tracking-widest italic shadow-xl">📍 Piantina Interattiva HD</button>
                 <div class="space-y-8">
-
+                    
                     <section>
                         <div class="flex items-center gap-2 mb-4"><div class="h-4 w-1 bg-yellow-500 rounded-full"></div><div><h2 class="text-yellow-500 font-black uppercase text-[10px] tracking-widest italic">Gold Privé</h2><p id="label-price-prive" class="text-[9px] text-slate-500 font-bold uppercase">Caricamento...</p></div></div>
                         <div class="grid grid-cols-3 gap-3">
@@ -158,7 +158,7 @@
                             <div id="map-tavolo-12" onclick="selectTavolo('12', 'min_prive', 'Gold Privé')" class="tavolo h-16 bg-yellow-600/20 rounded-2xl flex items-center justify-center font-black text-sm border-2 border-yellow-500/50 text-yellow-500 italic">T12</div>
                         </div>
                     </section>
-
+                    
                     <section>
                         <div class="flex items-center gap-2 mb-4"><div class="h-4 w-1 bg-green-500 rounded-full"></div><div><h2 class="text-green-500 font-black uppercase text-[10px] tracking-widest italic">Pista Centrale</h2><p id="label-price-pista" class="text-[9px] text-slate-500 font-bold uppercase">Caricamento...</p></div></div>
                         <div class="grid grid-cols-3 gap-3">
@@ -173,7 +173,7 @@
                             <div id="map-tavolo-11" onclick="selectTavolo('11', 'min_pista', 'Pista')" class="tavolo h-14 bg-green-600/10 rounded-2xl flex items-center justify-center font-black text-xs border border-green-500/30 text-green-500 italic">T11</div>
                         </div>
                     </section>
-
+                    
                     <section>
                         <div class="flex items-center gap-2 mb-4"><div class="h-4 w-1 bg-blue-500 rounded-full"></div><div><h2 class="text-blue-500 font-black uppercase text-[10px] tracking-widest italic">Fuori Pista & Garden</h2><p id="label-price-garden" class="text-[9px] text-slate-500 font-bold uppercase">Caricamento...</p></div></div>
                         <div class="grid grid-cols-4 gap-2">
@@ -195,18 +195,18 @@
             </div>
 
             <div id="sezione-capo" class="sezione-contenuto space-y-6">
-                <div class="glass p-6 rounded-3xl md:rounded-[2.5rem] border-yellow-500/30">
-                    <h3 class="text-[10px] font-black uppercase text-yellow-500 mb-6 italic tracking-widest text-center">📅 Gestione Serate</h3>
-                    <div class="space-y-4">
-                        <input type="text" id="event-title" placeholder="Titolo Serata" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold">
-                        <input type="date" id="event-date" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold">
-                        <textarea id="event-desc" placeholder="Descrizione / Info" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold h-20"></textarea>
-                        <div class="space-y-2">
-                            <label class="text-[9px] uppercase text-slate-500 font-black ml-2">Locandina (PNG/JPG)</label>
-                            <input type="file" id="event-poster" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-yellow-500 file:text-black hover:file:bg-yellow-600">
-                        </div>
-                        <button onclick="creaNuovaSerata()" id="btn-crea-serata" class="w-full py-4 bg-yellow-500 text-black rounded-xl font-black uppercase text-[10px] italic shadow-lg active:scale-95 transition-transform">🚀 Pubblica Serata</button>
-                    </div>
+                <div class="glass p-6 rounded-3xl md:rounded-[2.5rem] border-yellow-500/30"> 
+                    <h3 class="text-[10px] font-black uppercase text-yellow-500 mb-6 italic tracking-widest text-center">📅 Gestione Serate</h3> 
+                    <div class="space-y-4"> 
+                        <input type="text" id="event-title" placeholder="Titolo Serata" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold"> 
+                        <input type="date" id="event-date" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold"> 
+                        <textarea id="event-desc" placeholder="Descrizione / Info" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold h-20"></textarea> 
+                        <div class="space-y-2"> 
+                            <label class="text-[9px] uppercase text-slate-500 font-black ml-2">Locandina (PNG/JPG)</label> 
+                            <input type="file" id="event-poster" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-yellow-500 file:text-black hover:file:bg-yellow-600"> 
+                        </div> 
+                        <button onclick="creaNuovaSerata()" id="btn-crea-serata" class="w-full py-4 bg-yellow-500 text-black rounded-xl font-black uppercase text-[10px] italic shadow-lg active:scale-95 transition-transform">🚀 Pubblica Serata</button> 
+                    </div> 
                 </div>
                 <div class="glass p-6 rounded-3xl md:rounded-[2.5rem] border-red-500/30">
                     <h3 class="text-[10px] font-black uppercase text-red-500 mb-6 italic tracking-widest text-center">⚙️ Configurazione Serata</h3>
@@ -239,7 +239,7 @@
                         <button onclick="stopScanner()" class="absolute top-8 right-8 text-white bg-black/50 px-4 py-2 rounded-full font-black z-[6010]">CHIUDI X</button>
                         <div id="reader"></div>
                     </div>
-
+                    
                     <button onclick="startScanner()" class="w-full py-5 bg-slate-800 text-white rounded-2xl font-black uppercase text-xs mb-6 shadow-lg">📷 AVVIA CAMERA FULLSCREEN</button>
                     <p class="text-[9px] text-slate-500 font-bold uppercase mb-2">Inserimento manuale</p>
                     <input id="security-scan-input" type="text" placeholder="Es. TABLEKEY-T12-..." class="w-full bg-slate-950 border border-slate-600 p-4 rounded-xl text-white text-center font-mono text-xs mb-4 outline-none focus:border-yellow-500">
@@ -247,7 +247,7 @@
                 </div>
                 <div id="security-result" class="hidden glass p-8 rounded-[3rem] text-center border-4"></div>
             </div>
-
+            
             <div id="sezione-pr" class="sezione-contenuto space-y-6">
                 <div class="glass p-8 rounded-[3rem] border-green-500/30 text-center shadow-2xl relative overflow-hidden">
                     <p class="text-[10px] text-green-400 uppercase font-black italic mb-2 tracking-widest">Wallet Provvigioni</p>
@@ -268,7 +268,7 @@
                 <h2 class="text-2xl font-black uppercase italic text-blue-500">Team PR</h2>
                 <button onclick="document.getElementById('modal-gestione-pr').classList.add('hidden')" class="text-slate-500 font-black text-[10px] uppercase italic">Chiudi X</button>
             </header>
-
+            
             <div class="bg-slate-900/50 p-6 rounded-3xl md:rounded-[2.5rem] border border-blue-500/20 mb-8">
                 <h3 class="text-[10px] font-black uppercase text-slate-400 mb-4 italic">Aggiungi Nuovo PR</h3>
                 <div class="space-y-3">
@@ -287,7 +287,7 @@
     <div id="modal-pagamento" class="hidden fixed inset-0 bg-black/95 z-[2000] p-6 flex flex-col justify-center items-center">
         <div id="pay-step-calc" class="w-full max-w-sm glass p-8 rounded-[3rem] border-yellow-500/50">
             <h2 class="text-2xl font-black italic uppercase text-white mb-6 text-center">Prenota Tavolo</h2>
-
+            
             <div class="mb-6">
                 <div class="flex justify-between text-xs font-black uppercase mb-2 text-slate-400"><span>Ospiti</span><span id="label-persone" class="text-white text-lg">5 Persone</span></div>
                 <input type="range" id="slider-persone" min="1" max="100" value="5" oninput="updatePriceCalculation()">
@@ -395,7 +395,7 @@
     <script>
         // --- CONFIGURAZIONE E CONNESSIONE ---
         const SUPABASE_URL = "https://lktkmilzfcmcxpcqqvqo.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_O-4oxssSub-cwAvyXCyqzQ_5L9NdVZy";
+        const SUPABASE_KEY = "sb_publishable_O-4oxssSub-cwAvyXCyqzQ_5L9NdVZy"; 
         const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         const bevande = [["Belvedere 0.7L", 150], ["Grey Goose 0.7L", 160], ["Moët & Chandon", 130], ["Dom Pérignon", 450], ["Gin Hendrick's", 140]];
 
@@ -413,7 +413,7 @@
         async function checkLogin() {
             const email = document.getElementById('user-input').value;
             const password = document.getElementById('pass-input').value;
-
+            
             const btn = document.querySelector('button[onclick="checkLogin()"]');
             const originalText = btn.innerText;
             btn.innerText = "ACCESSO IN CORSO...";
@@ -449,7 +449,7 @@
                 document.getElementById('landing-page').classList.remove('hidden');
                 document.getElementById('btn-pr').classList.toggle('hidden', window.userRole !== 'pr');
                 document.getElementById('btn-capo').classList.toggle('hidden', window.userRole !== 'boss');
-
+                
                 await loadConfig();
                 fetchSerate();
                 showToast("Login effettuato!", "🔓");
@@ -480,15 +480,15 @@
             const nPrive = parseInt(document.getElementById('input-min-prive').value);
             const nGarden = parseInt(document.getElementById('input-min-garden').value);
             const nTesta = parseInt(document.getElementById('input-min-testa').value);
-
+            
             if (window.currentSerataId) {
-                const { error } = await client.from('serate').update({
-                    min_pista: nPista,
-                    min_prive: nPrive,
-                    min_garden: nGarden,
-                    min_testa: nTesta
+                const { error } = await client.from('serate').update({ 
+                    min_pista: nPista, 
+                    min_prive: nPrive, 
+                    min_garden: nGarden, 
+                    min_testa: nTesta 
                 }).eq('id', window.currentSerataId);
-
+                
                 if (error) showToast("Errore aggiornamento", "⛔");
                 else showToast("Listino Serata Aggiornato!", "💾");
             } else {
@@ -503,7 +503,7 @@
             configLocale.min_prive = nPrive;
             configLocale.min_garden = nGarden;
             configLocale.min_testa = nTesta;
-
+            
             document.getElementById('label-price-pista').innerText = `Base: €${configLocale.min_pista}`;
             document.getElementById('label-price-prive').innerText = `Base: €${configLocale.min_prive}`;
             document.getElementById('label-price-garden').innerText = `Base: €${configLocale.min_garden}`;
@@ -642,34 +642,34 @@
             if(document.getElementById(`map-tavolo-${id}`).classList.contains('tavolo-prenotato')) return showToast("Tavolo Occupato", "🔒");
             if(prenotazioni.some(p => p.tavolo_id == id)) return showToast("Tavolo Già Prenotato", "🚫");
 
-            const realBasePrice = configLocale[typeKey];
+            const realBasePrice = configLocale[typeKey]; 
             const realMinHead = configLocale.min_testa;
 
-            selectedTavolo = {
-                tavolo_id: id,
-                min_table: realBasePrice,
-                zona,
-                persone: 5,
+            selectedTavolo = { 
+                tavolo_id: id, 
+                min_table: realBasePrice, 
+                zona, 
+                persone: 5, 
                 budget_head: realMinHead,
                 totale: realBasePrice
             };
-
+            
             document.getElementById('slider-persone').value = 5;
             document.getElementById('slider-budget').min = realMinHead;
             document.getElementById('slider-budget').value = realMinHead;
-
+            
             document.getElementById('modal-pagamento').classList.remove('hidden');
             document.getElementById('pay-step-calc').classList.remove('hidden');
             document.getElementById('pay-step-checkout').classList.add('hidden');
             document.getElementById('pay-step-loading').classList.add('hidden');
-
+            
             updatePriceCalculation();
         }
 
         function updatePriceCalculation() {
             const persone = parseInt(document.getElementById('slider-persone').value);
             const budgetHead = parseInt(document.getElementById('slider-budget').value);
-
+            
             document.getElementById('warn-persone').classList.toggle('hidden', persone <= 20);
 
             const calcTotal = persone * budgetHead;
@@ -678,7 +678,7 @@
             document.getElementById('label-persone').innerText = persone;
             document.getElementById('label-budget').innerText = "€ " + budgetHead;
             document.getElementById('calc-total').innerText = "€ " + finalPrice;
-
+            
             const note = document.getElementById('calc-note');
             if (calcTotal < selectedTavolo.min_table) {
                 note.innerText = `⚠️ Applicato Minimale Tavolo (€${selectedTavolo.min_table})`;
@@ -715,7 +715,7 @@
 
             try {
                 const { data: checkTable } = await client.from('prenotazioni').select('id').eq('tavolo_id', selectedTavolo.tavolo_id).eq('serata_id', window.currentSerataId).maybeSingle();
-
+                
                 if (checkTable) {
                     throw new Error("Tavolo appena occupato da un altro cliente!");
                 }
@@ -753,7 +753,7 @@
                 navigator.share({ title: 'TableKey Pay', text: `Ciao! Ecco la mia quota per il tavolo ${selectedTavolo.tavolo_id}.`, url: 'https://tablekey.it/pay' }).then(() => { showToast("Link inviato!", "🚀"); processaPagamentoReale(); }).catch(console.error);
             } else { showToast("Link copiato! Invialo su WhatsApp.", "🔗"); processaPagamentoReale(); }
         }
-
+        
         function chiudiModalePagamento() {
             document.getElementById('modal-pagamento').classList.add('hidden');
             document.getElementById('pay-step-calc').classList.remove('hidden');
@@ -800,10 +800,10 @@
             const input = document.getElementById('security-scan-input').value.toUpperCase();
             const resDiv = document.getElementById('security-result');
             resDiv.classList.remove('hidden', 'status-ok', 'status-ko', 'border-green-500', 'border-red-500');
-
+            
             if(!input.startsWith("TABLEKEY-T")) { showToast("Codice non valido", "⚠️"); return; }
             const tID = input.split("-")[1].replace("T", "");
-
+            
             const { data, error } = await client.from('prenotazioni').select('*').eq('tavolo_id', tID).eq('serata_id', window.currentSerataId).single();
             if(error || !data) {
                 resDiv.classList.add('status-ko', 'border-red-500');
@@ -811,7 +811,7 @@
                 return;
             }
             const usati = data.ingressi_usati || 0;
-            const totali = data.ingressi_totali || 1;
+            const totali = data.ingressi_totali || 1; 
 
             if (usati >= totali) {
                 resDiv.classList.add('status-ko', 'border-red-500');
@@ -825,22 +825,22 @@
                 if(navigator.vibrate) navigator.vibrate([50, 50]);
             }
         }
-
+        
         async function resetTotale() {
             if(!confirm("Sicuro di voler CANCELLARE TUTTE le prenotazioni di questa serata?")) return;
             const { error } = await client.from('prenotazioni').delete().eq('serata_id', window.currentSerataId);
-            if(error) { alert("Errore cancellazione: " + error.message); }
+            if(error) { alert("Errore cancellazione: " + error.message); } 
             else { alert("Database Svuotato!"); fetchPrenotazioni(); }
         }
 
         // --- UTILS & UI UPDATE ---
         function logout() { location.reload(); }
-        async function entraNelLocale(n, id) {
-            window.currentSerataId = id;
-            document.getElementById('landing-page').classList.add('hidden');
-            document.getElementById('app-content').classList.remove('hidden');
-            document.getElementById('titolo-locale').innerText = n;
-
+        async function entraNelLocale(n, id) { 
+            window.currentSerataId = id; 
+            document.getElementById('landing-page').classList.add('hidden'); 
+            document.getElementById('app-content').classList.remove('hidden'); 
+            document.getElementById('titolo-locale').innerText = n; 
+            
             // Fetch serata details for prices
             const { data: serata, error } = await client.from('serate').select('*').eq('id', id).single();
             if (serata) {
@@ -848,12 +848,12 @@
                 configLocale.min_prive = serata.min_prive || configLocale.min_prive;
                 configLocale.min_garden = serata.min_garden || configLocale.min_garden;
                 configLocale.min_testa = serata.min_testa || configLocale.min_testa;
-
+                
                 // Update UI labels
                 document.getElementById('label-price-pista').innerText = `Base: €${configLocale.min_pista}`;
                 document.getElementById('label-price-prive').innerText = `Base: €${configLocale.min_prive}`;
                 document.getElementById('label-price-garden').innerText = `Base: €${configLocale.min_garden}`;
-
+                
                 // Update Boss inputs if user is boss
                 if (window.userRole === 'boss') {
                     document.getElementById('input-min-pista').value = configLocale.min_pista;
@@ -862,25 +862,25 @@
                     document.getElementById('input-min-testa').value = configLocale.min_testa;
                 }
             }
-
-            fetchPrenotazioni();
+            
+            fetchPrenotazioni(); 
         }
         function tornaAllaHome() { document.getElementById('landing-page').classList.remove('hidden'); document.getElementById('app-content').classList.add('hidden'); fetchSerate(); }
         function toggleMappa(s) { document.getElementById('modal-mappa').classList.toggle('hidden', !s); }
-        function switchView(m) {
-            if(navigator.vibrate) navigator.vibrate(10);
-            document.querySelectorAll('.tab-active').forEach(e => e.classList.remove('tab-active'));
-            document.querySelectorAll('.sezione-contenuto').forEach(e => e.classList.remove('active'));
-            if(m === 'security') document.getElementById('sezione-security').classList.add('active');
-            else {
-                document.getElementById('btn-' + m).classList.add('tab-active');
-                document.getElementById('sezione-' + m).classList.add('active');
-                fetchPrenotazioni();
-            }
+        function switchView(m) { 
+            if(navigator.vibrate) navigator.vibrate(10); 
+            document.querySelectorAll('.tab-active').forEach(e => e.classList.remove('tab-active')); 
+            document.querySelectorAll('.sezione-contenuto').forEach(e => e.classList.remove('active')); 
+            if(m === 'security') document.getElementById('sezione-security').classList.add('active'); 
+            else { 
+                document.getElementById('btn-' + m).classList.add('tab-active'); 
+                document.getElementById('sezione-' + m).classList.add('active'); 
+                fetchPrenotazioni(); 
+            } 
         }
         function checkPromo(input) { document.getElementById('pr-input').classList.toggle('border-green-500', input.value.length > 0); }
         function showToast(message, icon = "✅") { const c = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = 'toast'; t.innerHTML = `<span><span class="toast-icon">${icon}</span>${message}</span>`; c.appendChild(t); setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(20px)'; setTimeout(() => t.remove(), 300); }, 3000); }
-
+        
         function aggiornaInterfacce() {
             const container = document.getElementById('lista-prenotazioni-attive'); container.innerHTML = "";
             const registroDir = document.getElementById('registro-direzione'); registroDir.innerHTML = "";
@@ -889,7 +889,7 @@
 
             prenotazioni.forEach((p, i) => {
                 let showInMyTables = (window.userRole === 'cliente' && p.cliente === window.currentUser) || (window.userRole === 'pr' && p.pr_ref === window.currentUser);
-
+                
                 if (showInMyTables) {
                     myTablesCount++;
                     if (window.userRole === 'cliente') {
@@ -928,7 +928,7 @@
         function richiediAccredito() { window.open(`https://wa.me/393331234567?text=Saldo: ${document.getElementById('pr-wallet-total').innerText}`, '_blank'); }
         function copiaLink() { navigator.clipboard.writeText("malua54.it/ref/" + window.currentUser); showToast("Link Copiato!", "🔗"); }
         function aggiornaClassifica() { let stats = {}; const COMM = 0.10; prenotazioni.forEach(p => { let name = (p.pr_ref || "").trim().toUpperCase(); if(name) { if(!stats[name]) stats[name] = 0; stats[name] += (p.prezzo * COMM); } }); let sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]); const div = document.getElementById('classifica-live'); div.innerHTML = ""; if(sorted.length === 0) { div.innerHTML = '<p class="text-[9px] text-slate-600 text-center py-4 italic">In attesa di dati...</p>'; return; } sorted.forEach((item, index) => { let rank = index + 1; let color = rank === 1 ? 'text-yellow-400' : 'text-white'; let icon = rank === 1 ? '👑 ' : `${rank}. `; div.innerHTML += `<div class="flex justify-between items-center p-4 bg-slate-950 rounded-2xl border border-yellow-500/20"><span class="text-xs font-black italic ${color}">${icon}${item[0]}</span><span class="text-xs font-black text-yellow-500 italic">€ ${item[1].toFixed(2)}</span></div>`; }); }
-        function apriCreaPR() { document.getElementById('modal-crea-pr').classList.remove('hidden');  }
+        function apriCreaPR() { document.getElementById('modal-crea-pr').classList.remove('hidden'); }
 
     </script>
 </body>
