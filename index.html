@@ -415,6 +415,7 @@
         // STATO GLOBALE PREZZI (Default locale)
         let configLocale = { min_pista: 300, min_prive: 450, min_garden: 200, min_testa: 30 };
 
+        let serate = [];
         let prenotazioni = [];
         let selectedTavolo = null;
         window.currentUser = "Ospite";
@@ -555,7 +556,8 @@
         async function fetchSerate() {
             const { data, error } = await client.from('serate').select('*').eq('attiva', true).order('data', { ascending: true });
             if (!error) {
-                renderSerate(data);
+                serate = data || [];
+                renderSerate(serate);
             }
         }
 
