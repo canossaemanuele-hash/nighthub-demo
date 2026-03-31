@@ -408,7 +408,7 @@
     <script>
         // --- CONFIGURAZIONE E CONNESSIONE ---
         const SUPABASE_URL = "https://lktkmilzfcmcxpcqqvqo.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_O-4oxssSub-cwAvyXCyqzQ_5L9NdVZy";
+        const SUPABASE_KEY = "sb_publishable_O-4oxssSub-cwAvyXCyqzQ_5L9NdVZy"; 
         const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         const bevande = [["Belvedere 0.7L", 150], ["Grey Goose 0.7L", 160], ["Moët & Chandon", 130], ["Dom Pérignon", 450], ["Gin Hendrick's", 140]];
 
@@ -450,6 +450,7 @@
             else { showToast("Account creato! Ora accedi", "🎉"); toggleAuth('login'); }
         }
 
+        
         async function checkLogin() {
             const email = document.getElementById('user-input').value;
             const password = document.getElementById('pass-input').value;
@@ -470,12 +471,13 @@
                 return;
             }
 
-            
             const user = data.user;
             window.currentUser = user.email;
             window.userRole = user.user_metadata.role || 'cliente';
-            if(email.includes('boss')) window.userRole = 'boss'; // Override for legacy boss
+            if(email.includes('boss')) window.userRole = 'boss'; 
 
+            if (email.includes('security')) {
+                window.userRole = 'security';
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('app-content').classList.remove('hidden');
                 document.getElementById('nav-generale').classList.add('hidden');
@@ -484,7 +486,6 @@
             } else {
                 if (email === 'boss@malua54.com') window.userRole = 'boss';
                 else if (email === 'pr@malua54.com') window.userRole = 'pr';
-                else window.userRole = 'cliente';
 
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('landing-page').classList.remove('hidden');
@@ -496,6 +497,7 @@
                 showToast("Login effettuato!", "🔓");
             }
         }
+
 
         async function loadConfig() {
             const { data, error } = await client.from('impostazioni').select('*');
