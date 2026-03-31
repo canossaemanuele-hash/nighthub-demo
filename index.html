@@ -592,6 +592,7 @@
             }
         }
 
+        
         function renderSerate(serate) {
             const container = document.getElementById('lista-serate');
             if (!container) return;
@@ -602,20 +603,24 @@
             }
             serate.forEach(s => {
                 const img = s.immagine_url || 'https://images.unsplash.com/photo-1574094939582-9357dedc6361?auto=format&fit=crop&w=600&q=80';
+                const deleteBtn = window.userRole === 'boss' ? `<button onclick="event.stopPropagation(); if(confirm('Vuoi eliminare questa serata?')) eliminaSerata(${s.id})" class="ml-2 bg-red-600 text-white p-2 rounded-lg text-[9px] font-black uppercase shadow-lg">🗑️ Elimina</button>` : '';
+                
                 container.innerHTML += `
                     <div onclick="entraNelLocale('${s.nome}', ${s.id})" class="relative cursor-pointer overflow-hidden rounded-3xl md:rounded-[2.5rem] border border-yellow-500/40 bg-slate-900 shadow-2xl active:scale-95 transition-transform">
                         <div class="h-44 bg-cover bg-center opacity-70" style="background-image: url('${img}');"></div>
                         <div class="p-6 absolute bottom-0 left-0 right-0 glass rounded-t-[2rem]">
                             <div class="flex justify-between items-center">
                                 <div><h3 class="font-black text-2xl uppercase italic text-white">${s.nome}</h3><p class="text-[10px] text-yellow-500 font-bold uppercase italic">${s.data}</p></div>
-                                <span class="bg-green-500 text-black text-[9px] font-black px-3 py-1 rounded-full">LIVE</span><button onclick="event.stopPropagation(); if(confirm(\'Vuoi eliminare questa serata?\')) eliminaSerata(${s.id})" class="${window.userRole === \'boss\' ? \'\' : \'hidden\'} ml-2 bg-red-600 text-white p-2 rounded-lg text-[9px] font-black uppercase shadow-lg">🗑️ Elimina</button></span>
+                                <span class="flex items-center gap-2">
+                                    <span class="bg-green-500 text-black text-[9px] font-black px-3 py-1 rounded-full">LIVE</span>
+                                    ${deleteBtn}
+                                </span>
                             </div>
                         </div>
                     </div>`;
             });
         }
 
-        
         async function creaNuovaSerata() {
             const title = document.getElementById("event-title").value.trim();
             const date = document.getElementById("event-date").value;
@@ -816,7 +821,7 @@
                     throw new Error("Tavolo appena occupato da un altro cliente!");
                 }
 
-                const { error } = await client.from(\'prenotazioni\').insert([{ serata_id: window.currentSerataId, tavolo_id: selectedTavolo.tavolo_id, zona: selectedTavolo.zona, prezzo: selectedTavolo.totale, cliente: document.getElementById("customer-name").value || window.currentUser, status: "Pagato", note: note, bottiglie: [], ingressi_totali: selectedTavolo.persone, ingressi_usati: 0 }]); if(error) console.error("SUPABASE INSERT ERROR:", error);
+                const { error } = await client.from('prenotazioni').insert([{ serata_id: window.currentSerataId, tavolo_id: selectedTavolo.tavolo_id, zona: selectedTavolo.zona, prezzo: selectedTavolo.totale, cliente: document.getElementById("customer-name").value || window.currentUser, status: "Pagato", note: note, bottiglie: [], ingressi_totali: selectedTavolo.persone, ingressi_usati: 0 }]); if(error) console.error("SUPABASE INSERT ERROR:", error);
                 if(error) { console.error("SUPABASE ERROR:", error); throw error; }
 
                 if(error) throw error;
