@@ -967,12 +967,24 @@
 
         // --- UTILS & UI UPDATE ---
         function logout() { location.reload(); }
-        async function entraNelLocale(n, id) { window.currentSerataId = id; const s = serate.find(x => x.id === id); if(s && s.mappa_url) document.getElementById("mappa-img-viewer").src = s.mappa_url; else document.getElementById("mappa-img-viewer").src = "https://i.postimg.cc/8zqmMw4B/Image-6.jpg"; 
+        async function entraNelLocale(n, id) { 
+            window.currentSerataId = id; 
+            const s = serate.find(x => x.id === id); 
+            const imgViewer = document.getElementById("mappa-img-viewer");
+            
+            // Logica Mappa: Carica l'immagine della serata, se non c'è lascia vuoto
+            if(s && s.mappa_url) {
+                imgViewer.src = s.mappa_url; 
+                imgViewer.alt = "Mappa Serata";
+            } else { 
+                imgViewer.src = ""; 
+                imgViewer.alt = "Nessuna mappa caricata per questa serata";
+            }
+
             document.getElementById('landing-page').classList.add('hidden'); 
             document.getElementById('app-content').classList.remove('hidden'); 
             document.getElementById('titolo-locale').innerText = n; 
             
-            // Fetch serata details for prices
             const { data: serata, error } = await client.from('serate').select('*').eq('id', id).single();
             if (serata) {
                 configLocale.min_pista = serata.min_pista || configLocale.min_pista;
@@ -980,12 +992,10 @@
                 configLocale.min_garden = serata.min_garden || configLocale.min_garden;
                 configLocale.min_testa = serata.min_testa || configLocale.min_testa;
                 
-                // Update UI labels
                 document.getElementById('label-price-pista').innerText = `Base: €${configLocale.min_pista}`;
                 document.getElementById('label-price-prive').innerText = `Base: €${configLocale.min_prive}`;
                 document.getElementById('label-price-garden').innerText = `Base: €${configLocale.min_garden}`;
                 
-                // Update Boss inputs if user is boss
                 if (window.userRole === 'boss') {
                     document.getElementById('input-min-pista').value = configLocale.min_pista;
                     document.getElementById('input-min-prive').value = configLocale.min_prive;
@@ -1001,10 +1011,12 @@
             if(s) {
                 const serata = serate.find(x => x.id === window.currentSerataId);
                 const imgViewer = document.getElementById('mappa-img-viewer');
+                
+                // Rimuove il vecchio default e prende solo l'immagine dal database
                 if(serata && serata.mappa_url) {
                     imgViewer.src = serata.mappa_url;
                 } else {
-                    imgViewer.src = "https://i.postimg.cc/8zqmMw4B/Image-6.jpg";
+                    imgViewer.src = ""; 
                 }
             }
             document.getElementById('modal-mappa').classList.toggle('hidden', !s); 
