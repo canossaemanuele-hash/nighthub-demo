@@ -267,6 +267,14 @@
                     <p class="text-[10px] text-green-400 uppercase font-black italic mb-2 tracking-widest">Wallet Provvigioni</p>
                     <p id="pr-wallet-total" class="text-5xl font-black text-white italic tracking-tighter mb-1">€ 0,00</p>
                     <button onclick="richiediAccredito()" class="mt-4 w-full py-3 bg-white text-black rounded-xl font-black uppercase text-[10px] italic">💸 Richiedi Accredito</button>
+                    <div class="glass p-8 rounded-[3rem] border-green-500/30 text-center shadow-2xl relative overflow-hidden">
+    <p class="text-[10px] text-green-400 uppercase font-black italic mb-2 tracking-widest">Wallet Provvigioni</p>
+    <p id="pr-wallet-total" class="text-5xl font-black text-white italic tracking-tighter mb-1">€ 0,00</p>
+    
+    <button onclick="richiediAccredito()" class="mt-4 w-full py-3 bg-white text-black rounded-xl font-black uppercase text-[10px] italic">💸 Richiedi Accredito</button>
+    
+    <button onclick="copiaLink()" class="mt-4 w-full py-4 bg-yellow-500 text-black rounded-2xl font-black uppercase text-xs italic shadow-xl active:scale-95 transition-transform">🔗 Copia il mio Link Invito</button>
+</div>
                 </div>
                 <div class="glass p-6 rounded-3xl md:rounded-[2.5rem] border-slate-800">
                     <h3 class="text-[10px] font-black uppercase text-slate-500 mb-4 italic">Registro Vendite</h3>
@@ -287,6 +295,7 @@
                 <h3 class="text-[10px] font-black uppercase text-slate-400 mb-4 italic">Aggiungi Nuovo PR</h3>
                 <div class="space-y-3">
                     <input type="text" id="new-pr-name" placeholder="Nome Completo" class="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-xs text-white outline-none focus:border-blue-500">
+                    <input type="email" id="new-pr-email" placeholder="Email account del PR" class="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-xs text-white outline-none focus:border-blue-500">
                     <input type="text" id="new-pr-code" placeholder="Codice Univoco (es. marco_pr)" class="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-xs text-white outline-none focus:border-blue-500">
                     <button onclick="aggiungiPR()" class="w-full py-3 bg-blue-600 text-white rounded-xl font-black uppercase text-[10px] italic active:scale-95 transition-transform">➕ Aggiungi al Team</button>
                 </div>
@@ -485,54 +494,48 @@
     const originalText = btn.innerText;
     btn.innerText = "ACCESSO IN CORSO...";
     
-    const { data, error } = await client.auth.signInWithPassword({
-        email: email,
-        password: password,
-    });
-    
+    const { data, error } = await client.auth.signInWithPassword({ email: email, password: password });
     btn.innerText = originalText;
 
-    if (error) {
-        return showToast("Credenziali errate", "⛔");
-    }
+    if (error) return showToast("Credenziali errate", "⛔");
 
     const user = data.user;
-    window.currentUser = user.email; // Di base, identifichiamo tutti con l'email
+    window.currentUser = user.email;
     
-    // --- 1. ASSEGNAZIONE RUOLI ---
-    // Manteniamo le email "speciali" per farti entrare comodamente come Boss o Security
+    // --- CONTROLLO RUOLI DINAMICO ---
     if (email === 'boss@malua54.com') {
         window.userRole = 'boss';
     } else if (email === 'security@malua54.com') {
         window.userRole = 'security';
     } else {
-        // Altrimenti, legge il ruolo reale dal database Supabase (cliente o pr)
-        window.userRole = user.user_metadata.role || 'cliente';
+        // Cerca l'email nella tabella dei PR
+        const { data: prData } = await client.from('team_pr').select('codice').eq('email', user.email).maybeSingle();
+        
+        if (prData) {
+            window.userRole = 'pr';
+            window.prCode = prData.codice; // Salviamo il suo codice univoco in memoria!
+        } else {
+            window.userRole = 'cliente';
+        }
     }
 
-    // --- 2. ROUTING (Dove ti porto?) ---
+    // --- ROUTING ---
     document.getElementById('login-screen').classList.add('hidden');
 
     if (window.userRole === 'security') {
-        // La Security non vede le serate, va dritta allo scanner
         document.getElementById('app-content').classList.remove('hidden');
         document.getElementById('nav-generale').classList.add('hidden');
         document.getElementById('nav-security').classList.remove('hidden');
         switchView('security');
     } else {
-        // Clienti, PR e Boss atterrano sulla pagina delle Serate
         document.getElementById('landing-page').classList.remove('hidden');
-        
-        // Accendiamo o spegniamo i pulsanti segreti in base al ruolo
         document.getElementById('btn-pr').classList.toggle('hidden', window.userRole !== 'pr');
         document.getElementById('btn-capo').classList.toggle('hidden', window.userRole !== 'boss');
-        
         await loadConfig();
         fetchSerate();
     }
     showToast("Login effettuato!", "🔓");
 }
-
 
         async function loadConfig() {
             const { data, error } = await client.from('impostazioni').select('*');
@@ -802,10 +805,22 @@
 
         async function aggiungiPR() {
             const nome = document.getElementById('new-pr-name').value.trim();
+            const email = document.getElementById('new-pr-email').value.trim();
             const codice = document.getElementById('new-pr-code').value.trim();
-            if (!nome || !codice) return showToast("Compila tutti i campi", "⚠️");
-            const { error } = await client.from('team_pr').insert([{ nome, codice }]);
-            if (error) { showToast("Errore: " + error.message, "⛔"); } else { showToast("PR Aggiunto!", "✅"); document.getElementById('new-pr-name').value = ""; document.getElementById('new-pr-code').value = ""; caricaTeamPR(); }
+    
+            if (!nome || !codice || !email) return showToast("Compila tutti i campi", "⚠️");
+    
+            // Inseriamo anche l'email nel database
+            const { error } = await client.from('team_pr').insert([{ nome, codice, email }]);
+            if (error) { 
+                showToast("Errore: " + error.message, "⛔"); 
+            } else { 
+                showToast("PR Aggiunto!", "✅"); 
+                document.getElementById('new-pr-name').value = ""; 
+                document.getElementById('new-pr-email').value = ""; 
+                document.getElementById('new-pr-code').value = ""; 
+                caricaTeamPR(); 
+            }
         }
 
         async function rimuoviPR(id) {
@@ -1132,6 +1147,33 @@
         function aggiornaClassifica() { let stats = {}; const COMM = 0.10; prenotazioni.forEach(p => { let name = (p.pr_ref || "").trim().toUpperCase(); if(name) { if(!stats[name]) stats[name] = 0; stats[name] += (p.prezzo * COMM); } }); let sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]); const div = document.getElementById('classifica-live'); div.innerHTML = ""; if(sorted.length === 0) { div.innerHTML = '<p class="text-[9px] text-slate-600 text-center py-4 italic">In attesa di dati...</p>'; return; } sorted.forEach((item, index) => { let rank = index + 1; let color = rank === 1 ? 'text-yellow-400' : 'text-white'; let icon = rank === 1 ? '👑 ' : `${rank}. `; div.innerHTML += `<div class="flex justify-between items-center p-4 bg-slate-950 rounded-2xl border border-yellow-500/20"><span class="text-xs font-black italic ${color}">${icon}${item[0]}</span><span class="text-xs font-black text-yellow-500 italic">€ ${item[1].toFixed(2)}</span></div>`; }); }
         function apriCreaPR() { document.getElementById('modal-crea-pr').classList.remove('hidden'); }
 
+        // 1. Lettura automatica del link PR quando la pagina si carica
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = urlParams.get('ref');
+    if(ref) {
+        // Salva il codice PR nel browser del cliente
+        localStorage.setItem('pr_ref_salvato', ref);
+        
+        // Se l'input del carrello esiste già, compilalo subito
+        const prInput = document.getElementById('pr-input');
+        if(prInput) {
+            prInput.value = ref;
+            checkPromo(prInput);
+        }
+    }
+});
+
+// 2. Modifica la tua funzione copiaLink() esistente per renderla dinamica
+function copiaLink() { 
+    if(window.userRole !== 'pr' || !window.prCode) return showToast("Non sei un PR", "⚠️");
+    
+    // Crea il link basato sull'URL attuale
+    const linkUnivoco = `${window.location.origin}${window.location.pathname}?ref=${window.prCode}`;
+    
+    navigator.clipboard.writeText(linkUnivoco); 
+    showToast("Link Copiato! Invialo ai clienti.", "🔗"); 
+}
     </script>
 </body>
 </html>
