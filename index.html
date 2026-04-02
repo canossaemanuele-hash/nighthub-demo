@@ -627,16 +627,23 @@
             const container = document.getElementById('lista-serate');
             if (!container) return;
             container.innerHTML = "";
+            
+            // Tasto fisso sempre visibile per il Boss (La "porta sul retro")
+            if (window.userRole === 'boss') {
+                container.innerHTML += `<button onclick="forzaAccessoBoss()" class="w-full mb-6 py-4 bg-red-600/20 border-2 border-red-600 text-red-500 rounded-2xl font-black text-[10px] uppercase italic shadow-xl active:scale-95 transition-transform">⚙️ Gestione Globale (Boss)</button>`;
+            }
+
             if (serate.length === 0) {
-                container.innerHTML = '<p class="text-[10px] text-slate-600 text-center py-10 italic uppercase font-black">Nessuna serata in programma.</p>';
+                container.innerHTML += '<p class="text-[10px] text-slate-600 text-center py-10 italic uppercase font-black">Nessuna serata in programma.</p>';
                 return;
             }
+            
             serate.forEach(s => {
                 const img = s.immagine_url || 'https://images.unsplash.com/photo-1574094939582-9357dedc6361?auto=format&fit=crop&w=600&q=80';
-                const deleteBtn = window.userRole === 'boss' ? `<button onclick="event.stopPropagation(); if(confirm('Vuoi eliminare questa serata?')) eliminaSerata(${s.id})" class="ml-2 bg-red-600 text-white p-2 rounded-lg text-[9px] font-black uppercase shadow-lg">🗑️ Elimina</button>` : '';
+                const deleteBtn = window.userRole === 'boss' ? `<button onclick="event.stopPropagation(); eliminaSerata(${s.id})" class="ml-2 bg-red-600 text-white p-2 rounded-lg text-[9px] font-black uppercase shadow-lg">🗑️ Elimina</button>` : '';
                 
                 container.innerHTML += `
-                    <div onclick="entraNelLocale('${s.nome}', ${s.id})" class="relative cursor-pointer overflow-hidden rounded-3xl md:rounded-[2.5rem] border border-yellow-500/40 bg-slate-900 shadow-2xl active:scale-95 transition-transform">
+                    <div onclick="entraNelLocale('${s.nome}', ${s.id})" class="relative cursor-pointer overflow-hidden rounded-3xl md:rounded-[2.5rem] border border-yellow-500/40 bg-slate-900 shadow-2xl active:scale-95 transition-transform mb-6">
                         <div class="h-44 bg-cover bg-center opacity-70" style="background-image: url('${img}');"></div>
                         <div class="p-6 absolute bottom-0 left-0 right-0 glass rounded-t-[2rem]">
                             <div class="flex justify-between items-center">
@@ -649,6 +656,14 @@
                         </div>
                     </div>`;
             });
+        }
+        function forzaAccessoBoss() {
+            window.currentSerataId = null; // Disabilita i controlli legati a una serata specifica
+            document.getElementById('landing-page').classList.add('hidden');
+            document.getElementById('app-content').classList.remove('hidden');
+            document.getElementById('titolo-locale').innerText = "Direzione";
+            document.getElementById('btn-capo').classList.remove('hidden'); 
+            switchView('capo'); // Ti catapulta direttamente nel pannello di comando
         }
 
                 async function creaNuovaSerata() {
