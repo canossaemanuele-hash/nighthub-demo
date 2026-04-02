@@ -218,7 +218,7 @@
                             <label class="text-[9px] uppercase text-slate-500 font-black ml-2">Locandina (PNG/JPG)</label> 
                             <input type="file" id="event-poster" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-yellow-500 file:text-black hover:file:bg-yellow-600"><label class="text-[9px] uppercase text-slate-500 font-black ml-2 mt-2 block">Piantina Tavoli (Mappa)</label><input type="file" id="event-map" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-yellow-500 file:text-black hover:file:bg-yellow-600 mb-2"> 
                         </div> 
-                        <button onclick="creaNuovaSerata()" id="btn-crea-serata" class="w-full py-4 bg-yellow-500 text-black rounded-xl font-black uppercase text-[10px] italic shadow-lg active:scale-95 transition-transform">🚀 Pubblica Serata</button> 
+                        <button id="btn-cancel-edit" onclick="resetFormBoss()" class="hidden w-full py-2 mb-2 bg-slate-800 text-slate-400 rounded-xl font-black uppercase text-[9px] italic">Annulla Modifica</button><button onclick="creaNuovaSerata()" id="btn-crea-serata" class="w-full py-4 bg-yellow-500 text-black rounded-xl font-black uppercase text-[10px] italic shadow-lg active:scale-95 transition-transform">🚀 Pubblica Serata</button> 
                     </div> 
                 </div>
                 <div class="glass p-6 rounded-3xl md:rounded-[2.5rem] border-red-500/30">
@@ -418,6 +418,29 @@
 
         let serate = [];
         let prenotazioni = [];
+        let editingSerataId = null;
+        function resetFormBoss() {
+            editingSerataId = null;
+            document.getElementById("event-title").value = "";
+            document.getElementById("event-date").value = "";
+            document.getElementById("event-desc").value = "";
+            document.getElementById("event-poster").value = "";
+            document.getElementById("event-map").value = "";
+            document.getElementById("btn-crea-serata").innerText = "🚀 Pubblica Serata";
+            document.getElementById("btn-cancel-edit").classList.add("hidden");
+        }
+        function caricaDatiSerata(id) {
+            const s = serate.find(x => x.id === id);
+            if(!s) return;
+            editingSerataId = s.id;
+            document.getElementById("event-title").value = s.nome;
+            document.getElementById("event-date").value = s.data;
+            document.getElementById("event-desc").value = s.descrizione || "";
+            document.getElementById("btn-crea-serata").innerText = "💾 Salva Modifiche";
+            document.getElementById("btn-cancel-edit").classList.remove("hidden");
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
         let selectedTavolo = null;
         window.currentUser = "Ospite";
         window.userRole = "guest";
@@ -579,7 +602,7 @@
                             <p class="text-white text-xs font-black uppercase">${s.nome}</p>
                             <p class="text-[9px] text-slate-500 font-bold">${s.data}</p>
                         </div>
-                        <button onclick="eliminaSerata(${s.id})" class="bg-red-600 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase shadow-lg active:scale-95 transition-transform">🗑️ Elimina</button>
+                        <div class="flex gap-2"><button onclick="caricaDatiSerata('${s.id}')" class="bg-blue-600 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase shadow-lg active:scale-95 transition-transform">✏️ Modifica</button><button onclick="eliminaSerata('${s.id}')" class="bg-red-600 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase shadow-lg active:scale-95 transition-transform">🗑️ Elimina</button></div>
                     </div>
                 `;
             });
@@ -622,7 +645,7 @@
             });
         }
 
-        async function creaNuovaSerata() {
+                async function creaNuovaSerata() {
             const title = document.getElementById("event-title").value.trim();
             const date = document.getElementById("event-date").value;
             const desc = document.getElementById("event-desc").value.trim();
@@ -632,10 +655,14 @@
 
             if (!title || !date) return showToast("Titolo e Data obbligatori", "⚠️");
 
-            btn.innerText = "PUBBLICAZIONE IN CORSO...";
+            btn.innerText = "SALVATAGGIO...";
             btn.disabled = true;
 
             let imageUrl = null;
+            if (editingSerataId) {
+                const s = serate.find(x => x.id === editingSerataId);
+                imageUrl = s.immagine_url;
+            }
             if (fileInput.files.length > 0) {
                 const file = fileInput.files[0];
                 const fileName = `${Math.random()}-${file.name}`;
@@ -647,6 +674,10 @@
             }
 
             let mapUrl = null;
+            if (editingSerataId) {
+                const s = serate.find(x => x.id === editingSerataId);
+                mapUrl = s.mappa_url;
+            }
             if (mapInput.files.length > 0) {
                 const file = mapInput.files[0];
                 const fileName = `${Math.random()}-${file.name}`;
@@ -654,31 +685,41 @@
                 if (!uploadError) {
                     const { data: urlData } = client.storage.from("maps").getPublicUrl(fileName);
                     mapUrl = urlData.publicUrl;
+                    if(editingSerataId === window.currentSerataId) {
+                        document.getElementById("mappa-img-viewer").src = mapUrl;
+                    }
                 }
             }
 
-            const { error } = await client.from("serate").insert([{
-                nome: title,
-                data: date,
-                descrizione: desc,
-                immagine_url: imageUrl,
-                mappa_url: mapUrl,
-                attiva: true
-            }]);
-
-
-            btn.innerText = "🚀 Pubblica Serata";
-            btn.disabled = false;
-
-            if (error) {
-                showToast("Errore creazione serata", "⛔");
-                console.error(error);
+            let result;
+            if(editingSerataId) {
+                result = await client.from("serate").update({
+                    nome: title,
+                    data: date,
+                    descrizione: desc,
+                    immagine_url: imageUrl,
+                    mappa_url: mapUrl
+                }).eq('id', editingSerataId);
             } else {
-                showToast("Serata Pubblicata!", "✅");
-                document.getElementById("event-title").value = "";
-                document.getElementById("event-date").value = "";
-                document.getElementById("event-desc").value = "";
-                fileInput.value = "";
+                result = await client.from("serate").insert([{
+                    nome: title,
+                    data: date,
+                    descrizione: desc,
+                    immagine_url: imageUrl,
+                    mappa_url: mapUrl,
+                    attiva: true
+                }]);
+            }
+
+            btn.disabled = false;
+            btn.innerText = editingSerataId ? "💾 Salva Modifiche" : "🚀 Pubblica Serata";
+
+            if (result.error) {
+                showToast("Errore salvataggio", "⛔");
+                console.error(result.error);
+            } else {
+                showToast(editingSerataId ? "Serata Aggiornata!" : "Serata Pubblicata!", "✅");
+                resetFormBoss();
                 fetchSerate();
             }
         }
