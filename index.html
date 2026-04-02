@@ -744,7 +744,24 @@
                 fetchSerate();
             }
         }
+        // --- MOTORE REALTIME (Sincronizzazione Live) ---
+        let realtimeChannel = null;
 
+        function attivaRealtime() {
+            if (realtimeChannel) return; // Se è già attivo, non lo duplica
+            
+            realtimeChannel = client
+                .channel('prenotazioni_live')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'prenotazioni' }, payload => {
+                    console.log('Aggiornamento LIVE dal database!', payload);
+                    // Se siamo dentro una serata, ricarica la mappa e le liste all'istante
+                    if (window.currentSerataId) {
+                        fetchPrenotazioni(); 
+                    }
+                })
+                .subscribe();
+        }
+        
         async function fetchPrenotazioni() {
             const { data, error } = await client.from('prenotazioni').select('*').eq('serata_id', window.currentSerataId);
             if (!error) { prenotazioni = data || []; aggiornaInterfacce(); aggiornaClassifica(); aggiornaMappaVisiva(); }
@@ -1024,7 +1041,7 @@
                     document.getElementById('input-min-testa').value = configLocale.min_testa;
                 }
             }
-            
+            attivaRealtime();
             fetchPrenotazioni(); 
         }
         function tornaAllaHome() { document.getElementById('landing-page').classList.remove('hidden'); document.getElementById('app-content').classList.add('hidden'); fetchSerate(); }
