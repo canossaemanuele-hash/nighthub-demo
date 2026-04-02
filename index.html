@@ -118,10 +118,11 @@
             <div id="signup-form" class="hidden space-y-4 text-left">
                 <input type="email" id="reg-email" placeholder="Email" class="w-full bg-slate-950/50 border border-slate-700 p-4 rounded-2xl text-sm focus:border-yellow-500 outline-none text-white italic">
                 <input type="password" id="reg-pass" placeholder="Password (min 6 car.)" class="w-full bg-slate-950/50 border border-slate-700 p-4 rounded-2xl text-sm focus:border-yellow-500 outline-none text-white">
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="selectRegRole('cliente', this)" class="reg-role-btn py-3 rounded-xl border border-yellow-500 bg-slate-900 text-white text-[10px] font-black uppercase italic">Cliente</button>
-                    <button onclick="selectRegRole('pr', this)" class="reg-role-btn py-3 rounded-xl border border-slate-700 text-slate-500 text-[10px] font-black uppercase italic">Promoter PR</button>
-                </div>
+    
+                <button onclick="handleSignup()" class="w-full bg-white text-black font-black py-4 rounded-2xl uppercase text-xs tracking-widest italic shadow-xl active:scale-95 transition-transform">Crea Account</button>
+    
+                <p class="text-[10px] text-slate-500 font-bold uppercase italic mt-4 text-center">Hai già un account? <a href="javascript:void(0)" onclick="toggleAuth('login')" class="text-yellow-500">Accedi</a></p>
+            </div>
                 <button onclick="handleSignup()" class="w-full bg-white text-black font-black py-4 rounded-2xl uppercase text-xs tracking-widest italic shadow-xl active:scale-95 transition-transform">Crea Account</button>
                 <p class="text-[10px] text-slate-500 font-bold uppercase italic mt-4 text-center">Hai già un account? <a href="javascript:void(0)" onclick="toggleAuth('login')" class="text-yellow-500">Accedi</a></p>
             </div>
@@ -449,99 +450,88 @@
 
         // --- AUTH & INIT ---
         
-        let regRole = 'cliente';
         function toggleAuth(mode) {
             document.getElementById('login-form').classList.toggle('hidden', mode === 'signup');
             document.getElementById('signup-form').classList.toggle('hidden', mode === 'login');
         }
-        function selectRegRole(role, btn) {
-            regRole = role;
-            document.querySelectorAll('.reg-role-btn').forEach(b => {
-                b.classList.remove('border-yellow-500', 'bg-slate-900', 'text-white');
-                b.classList.add('border-slate-700', 'text-slate-500');
-            });
-            btn.classList.add('border-yellow-500', 'bg-slate-900', 'text-white');
-            btn.classList.remove('border-slate-700', 'text-slate-500');
-        }
+    
         async function handleSignup() {
-            const email = document.getElementById('reg-email').value;
+            const email = document.getElementById('reg-email').value.trim();
             const pass = document.getElementById('reg-pass').value;
-            if(!email || pass.length < 6) return showToast("Dati non validi", "⚠️");
-            
-            let codicePr = "";
-            // Se l'utente sta cercando di registrarsi come PR, gli chiediamo il codice
-            if (regRole === 'pr') {
-                codicePr = prompt("Inserisci il tuo Codice PR (fornito dalla Direzione):");
-                if (!codicePr) return showToast("Codice PR obbligatorio per i PR", "⚠️");
-                
-                // Controllo di sicurezza: verifichiamo che il Boss abbia davvero creato questo codice!
-                const { data: checkPr } = await client.from('team_pr').select('codice').eq('codice', codicePr).single();
-                if (!checkPr) return showToast("Codice PR inesistente o errato!", "⛔");
-            }
 
-            // Salviamo l'utente e, se è un PR, gli "appiccichiamo" addosso il suo codice segreto
+            if(!email || pass.length < 6) return showToast("Dati non validi", "⚠️");
+    
+            // Tutti i nuovi utenti nascono di default come "cliente"
             const { data, error } = await client.auth.signUp({
-                email, password: pass,
-                options: { data: { role: regRole, pr_code: codicePr } }
+                email: email, 
+                password: pass,
+                options: { data: { role: 'cliente' } }
             });
-            
-            if(error) showToast(error.message, "⛔");
-            else { showToast("Account creato! Ora accedi", "🎉"); toggleAuth('login'); }
-        }
+    
+            if(error) {
+                showToast(error.message, "⛔");
+                } else { 
+                    showToast("Account creato! Ora accedi", "🎉"); 
+                    toggleAuth('login');
+                }
+            }
 
         
         async function checkLogin() {
-            const email = document.getElementById('user-input').value;
-            const password = document.getElementById('pass-input').value;
-            
-            const btn = document.querySelector('button[onclick="checkLogin()"]');
-            const originalText = btn.innerText;
-            btn.innerText = "ACCESSO IN CORSO...";
+    const email = document.getElementById('user-input').value.trim();
+    const password = document.getElementById('pass-input').value;
+    
+    const btn = document.querySelector('button[onclick="checkLogin()"]');
+    const originalText = btn.innerText;
+    btn.innerText = "ACCESSO IN CORSO...";
+    
+    const { data, error } = await client.auth.signInWithPassword({
+        email: email,
+        password: password,
+    });
+    
+    btn.innerText = originalText;
 
-            const { data, error } = await client.auth.signInWithPassword({
-                email: email,
-                password: password,
-            });
+    if (error) {
+        return showToast("Credenziali errate", "⛔");
+    }
 
-            btn.innerText = originalText;
+    const user = data.user;
+    window.currentUser = user.email; // Di base, identifichiamo tutti con l'email
+    
+    // --- 1. ASSEGNAZIONE RUOLI ---
+    // Manteniamo le email "speciali" per farti entrare comodamente come Boss o Security
+    if (email === 'boss@malua54.com') {
+        window.userRole = 'boss';
+    } else if (email === 'security@malua54.com') {
+        window.userRole = 'security';
+    } else {
+        // Altrimenti, legge il ruolo reale dal database Supabase (cliente o pr)
+        window.userRole = user.user_metadata.role || 'cliente';
+    }
 
-            if (error) {
-                showToast("Credenziali errate", "⛔");
-                return;
-            }
+    // --- 2. ROUTING (Dove ti porto?) ---
+    document.getElementById('login-screen').classList.add('hidden');
 
-            const user = data.user;
-            window.userRole = user.user_metadata.role || 'cliente';
-            
-            // SE È UN PR, USA IL SUO CODICE. SE È UN CLIENTE, USA LA SUA EMAIL.
-            if (window.userRole === 'pr' && user.user_metadata.pr_code) {
-                window.currentUser = user.user_metadata.pr_code;
-            } else {
-                window.currentUser = user.email;
-            }
-            if(email.includes('boss')) window.userRole = 'boss'; 
-
-            if (email.includes('security')) {
-                window.userRole = 'security';
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('app-content').classList.remove('hidden');
-                document.getElementById('nav-generale').classList.add('hidden');
-                document.getElementById('nav-security').classList.remove('hidden');
-                switchView('security');
-            } else {
-                if (email === 'boss@malua54.com') window.userRole = 'boss';
-                else if (email === 'pr@malua54.com') window.userRole = 'pr';
-
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('landing-page').classList.remove('hidden');
-                document.getElementById('btn-pr').classList.toggle('hidden', window.userRole !== 'pr');
-                document.getElementById('btn-capo').classList.toggle('hidden', window.userRole !== 'boss');
-                
-                await loadConfig();
-                fetchSerate();
-                showToast("Login effettuato!", "🔓");
-            }
-        }
+    if (window.userRole === 'security') {
+        // La Security non vede le serate, va dritta allo scanner
+        document.getElementById('app-content').classList.remove('hidden');
+        document.getElementById('nav-generale').classList.add('hidden');
+        document.getElementById('nav-security').classList.remove('hidden');
+        switchView('security');
+    } else {
+        // Clienti, PR e Boss atterrano sulla pagina delle Serate
+        document.getElementById('landing-page').classList.remove('hidden');
+        
+        // Accendiamo o spegniamo i pulsanti segreti in base al ruolo
+        document.getElementById('btn-pr').classList.toggle('hidden', window.userRole !== 'pr');
+        document.getElementById('btn-capo').classList.toggle('hidden', window.userRole !== 'boss');
+        
+        await loadConfig();
+        fetchSerate();
+    }
+    showToast("Login effettuato!", "🔓");
+}
 
 
         async function loadConfig() {
