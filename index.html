@@ -580,8 +580,14 @@
         
         
         async function eliminaSerata(id) {
-            if(!confirm("Sei sicuro di voler eliminare questa serata?")) return;
+            if(!confirm("Sei sicuro di voler eliminare questa serata? ATTENZIONE: verranno cancellate anche tutte le prenotazioni collegate!")) return;
+            
+            // 1. Prima eliminiamo tutte le prenotazioni associate a questa serata
+            await client.from('prenotazioni').delete().eq('serata_id', id);
+            
+            // 2. Ora che è vuota, possiamo eliminare la serata in sicurezza
             const { error } = await client.from('serate').delete().eq('id', id);
+            
             if (error) {
                 showToast("Errore eliminazione", "⛔");
                 console.error(error);
